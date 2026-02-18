@@ -3,12 +3,139 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
-// Enums
+model Tenant {
+  id               String            @id @default(uuid())
+  name             String
+  slug             String            @unique
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  appointments     Appointment[]
+  customers        Customer[]
+  employees        Employee[]
+  schedulingConfig SchedulingConfig?
+  services         Service[]
+  users            User[]
+}
+
+model User {
+  id              String    @id @default(uuid())
+  name            String?
+  email           String    @unique
+  password        String
+  role            Role      @default(CLIENT)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  tenantId        String?
+  customerProfile Customer?
+  employeeProfile Employee?
+  tenant          Tenant?   @relation(fields: [tenantId], references: [id])
+}
+
+model Customer {
+  id               String           @id @default(uuid())
+  userId           String           @unique
+  address          String?
+  phone            String?
+  latitude         Float?
+  longitude        Float?
+  document         String?
+  birthDate        DateTime?
+  notes            String?
+  bedrooms         Int?
+  bathrooms        Int?
+  footage          String?
+  accessInfo       String?
+  tenantId         String
+  active           Boolean          @default(true)
+  type             ClientType       @default(PERSONAL)
+  frequency        ServiceFrequency @default(ONE_TIME)
+  frequencyDetails String?
+  billingDay       Int?
+  appointments     Appointment[]
+  tenant           Tenant           @relation(fields: [tenantId], references: [id])
+  user             User             @relation(fields: [userId], references: [id])
+  invoices         Invoice[]
+}
+
+model Employee {
+  id           String        @id @default(uuid())
+  userId       String        @unique
+  color        String?       @default("#000000")
+  phone        String?
+  tenantId     String
+  appointments Appointment[]
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  user         User          @relation(fields: [userId], references: [id])
+}
+
+model Service {
+  id           String        @id @default(uuid())
+  name         String
+  description  String?
+  durationMin  Int           @default(60)
+  price        Decimal       @default(0.00)
+  tenantId     String
+  appointments Appointment[]
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+}
+
+model Appointment {
+  id                     String              @id @default(uuid())
+  startTime              DateTime
+  endTime                DateTime
+  status                 AppointmentStatus   @default(PENDING)
+  notes                  String?
+  address                String
+  price                  Decimal
+  priority               AppointmentPriority @default(NORMAL)
+  actualStartTime        DateTime?
+  actualEndTime          DateTime?
+  clientConfirmationDate DateTime?
+  invoiceId              String?
+  customerId             String
+  employeeId             String?
+  serviceId              String
+  tenantId               String
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+  customer               Customer            @relation(fields: [customerId], references: [id])
+  employee               Employee?           @relation(fields: [employeeId], references: [id])
+  invoice                Invoice?            @relation(fields: [invoiceId], references: [id])
+  service                Service             @relation(fields: [serviceId], references: [id])
+  tenant                 Tenant              @relation(fields: [tenantId], references: [id])
+}
+
+model Invoice {
+  id           String        @id @default(uuid())
+  amount       Decimal
+  status       String        @default("OPEN")
+  dueDate      DateTime
+  paidAt       DateTime?
+  customerId   String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  appointments Appointment[]
+  customer     Customer      @relation(fields: [customerId], references: [id])
+}
+
+model SchedulingConfig {
+  id           String   @id @default(uuid())
+  availability String   @default("{}")
+  holidays     String   @default("[]")
+  rateNormal   Decimal  @default(50.00)
+  rateNormal2  Decimal  @default(75.00)
+  rateUrgent   Decimal  @default(100.00)
+  tenantId     String   @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+}
+
 enum Role {
   ADMIN
   CLEANER
@@ -39,171 +166,4 @@ enum AppointmentPriority {
   NORMAL
   HIGH
   URGENT
-}
-
-// Models
-
-// Tenant representa a empresa contratante do SaaS (Multi-tenancy)
-model Tenant {
-  id          String   @id @default(uuid())
-  name        String
-  slug        String   @unique // Para subdominio ou url amigavel
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  users       User[]
-  services    Service[]
-  customers   Customer[]
-  employees   Employee[]
-  appointments Appointment[]
-  
-  schedulingConfig SchedulingConfig?
-}
-
-model User {
-  id            String    @id @default(uuid())
-  name          String?
-  email         String    @unique
-  password      String    // Hash
-  role          Role      @default(CLIENT)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  tenantId      String?
-  tenant        Tenant?   @relation(fields: [tenantId], references: [id])
-
-  // Perfis Específicos
-  customerProfile Customer?
-  employeeProfile Employee?
-}
-
-model Customer {
-  id          String   @id @default(uuid())
-  userId      String   @unique
-  user        User     @relation(fields: [userId], references: [id])
-  
-  address     String?
-  phone       String?
-  latitude    Float?
-  longitude   Float?
-
-  document    String?  // CPF ou CNPJ
-  birthDate   DateTime?
-  notes       String?
-
-  // Detalhes do Imóvel (ZenMaid Style)
-  bedrooms    Int?
-  bathrooms   Int?
-  footage     String?  // Ex: 120m²
-  accessInfo  String?  // Portaria, chaves, códigos
-
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-
-  appointments Appointment[]
-  
-  active      Boolean  @default(true)
-  
-  type        ClientType       @default(PERSONAL)
-  frequency   ServiceFrequency @default(ONE_TIME)
-  frequencyDetails String?     // Detalhes da frequência (dias, qtd vezes, etc.) em JSON ou texto
-
-  billingDay  Int?             // Dia do mês para faturamento (1-31) para recorrentes.
-  invoices    Invoice[]
-}
-
-model Employee {
-  id          String   @id @default(uuid())
-  userId      String   @unique
-  user        User     @relation(fields: [userId], references: [id])
-  
-  color       String?  @default("#000000") // Para calendário
-  phone       String?
-  
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-
-  appointments Appointment[]
-}
-
-model Service {
-  id          String   @id @default(uuid())
-  name        String
-  description String?
-  durationMin Int      @default(60)
-  price       Decimal  @default(0.00)
-  
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-
-  appointments Appointment[]
-}
-
-model Appointment {
-  id          String            @id @default(uuid())
-  startTime   DateTime
-  endTime     DateTime
-  status      AppointmentStatus @default(PENDING)
-  notes       String?
-  address     String           // Endereço específico do serviço
-  
-  price       Decimal
-  priority    AppointmentPriority @default(NORMAL)
-
-  // Rastreamento de Serviço
-  actualStartTime        DateTime?
-  actualEndTime          DateTime?
-  clientConfirmationDate DateTime? // Data da confirmação do cliente (ou auto-confirm após 3h)
-
-  invoiceId   String?
-  invoice     Invoice? @relation(fields: [invoiceId], references: [id])
-
-  // Relações
-  customerId  String
-  customer    Customer @relation(fields: [customerId], references: [id])
-
-  employeeId  String?
-  employee    Employee? @relation(fields: [employeeId], references: [id])
-
-  serviceId   String
-  service     Service  @relation(fields: [serviceId], references: [id])
-
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model Invoice {
-  id          String   @id @default(uuid())
-  amount      Decimal
-  status      String   @default("OPEN") // OPEN, PAID, VOID, DRAFT
-  dueDate     DateTime
-  paidAt      DateTime?
-
-  customerId  String
-  customer    Customer @relation(fields: [customerId], references: [id])
-  
-  appointments Appointment[]
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model SchedulingConfig {
-  id          String   @id @default(uuid())
-  
-  availability String   @default("{}") // JSON: { "1": [{start: "08:00", end: "18:00"}] }
-  holidays    String   @default("[]")  // JSON: ["2026-12-25"]
-  
-  rateNormal  Decimal  @default(50.00)
-  rateNormal2 Decimal  @default(75.00) // "Normal 2" / High
-  rateUrgent  Decimal  @default(100.00)
-
-  tenantId    String   @unique
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 }

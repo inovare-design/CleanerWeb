@@ -4,6 +4,7 @@ import { PrismaClient } from "@prisma/client"
 import Credentials from "next-auth/providers/credentials"
 import bcrypt from "bcryptjs"
 import { z } from "zod"
+import authConfig from "./auth.config"
 
 const prisma = new PrismaClient()
 
@@ -23,6 +24,7 @@ export const {
     pages: {
         signIn: "/login",
     },
+    ...authConfig,
     providers: [
         Credentials({
             async authorize(credentials) {
