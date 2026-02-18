@@ -1,0 +1,252 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { getAvailableSlots } from "@/actions/get-available-slots";
+import { Button } from "@/components/ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Plus } from "lucide-react";
+import { createAppointment } from "@/actions/create-appointment";
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+
+type PropType = {
+    children?: React.ReactNode;
+    clients: { id: string; name: string | null; email: string; customerProfile?: { id: string; address: string | null } | null }[];
+    services: { id: string; name: string; durationMin: number; price: number }[];
+    employees: { id: string; name: string | null; employeeProfile?: { id: string } | null }[];
+};
+
+export function CreateAppointmentModal({ clients, services, employees }: PropType) {
+    const [open, setOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState("");
+
+    // State básico para autopreencher endereço
+    const [selectedClientId, setSelectedClientId] = useState("");
+    const [selectedServiceId, setSelectedServiceId] = useState("");
+    const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
+    const [address, setAddress] = useState("");
+
+    // Date/Time Availability State
+    const [selectedDate, setSelectedDate] = useState("");
+    const [availableSlots, setAvailableSlots] = useState<{ time: string; available: boolean }[]>([]);
+    const [loadingSlots, setLoadingSlots] = useState(false);
+    const [selectedTime, setSelectedTime] = useState("");
+
+    // Fetch slots when Date or Service changes
+    useEffect(() => {
+        if (!selectedDate || !selectedServiceId) return;
+
+        const fetchSlots = async () => {
+            setLoadingSlots(true);
+            const service = services.find(s => s.id === selectedServiceId);
+            const duration = service ? service.durationMin : 60;
+
+            const result = await getAvailableSlots(selectedDate, duration);
+            if (result.slots) {
+                setAvailableSlots(result.slots);
+            }
+            setLoadingSlots(false);
+        };
+        fetchSlots();
+    }, [selectedDate, selectedServiceId, services]);
+
+    const handleClientChange = (customerId: string) => {
+        setSelectedClientId(customerId);
+        const client = clients.find(c => c.customerProfile?.id === customerId);
+        if (client?.customerProfile?.address) {
+            setAddress(client.customerProfile.address);
+        }
+    };
+
+    async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+        setIsLoading(true);
+        setError("");
+
+        const formData = new FormData(event.currentTarget);
+        const result = await createAppointment(formData);
+
+        setIsLoading(false);
+
+        if (result.error) {
+            setError(result.error);
+        } else {
+            setOpen(false);
+            // Reset form logic if needed
+        }
+    }
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button className="bg-violet-600 hover:bg-violet-700">
+                    <Plus className="mr-2 h-4 w-4" /> Novo Agendamento
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+                <form onSubmit={handleSubmit}>
+                    <DialogHeader>
+                        <DialogTitle>Agendar Serviço</DialogTitle>
+                        <DialogDescription>
+                            Crie uma ordem de serviço associando cliente, serviço e equipe.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        {error && (
+                            <div className="bg-red-100 text-red-600 p-2 rounded-md text-sm">
+                                {error}
+                            </div>
+                        )}
+
+                        {/* Cliente Select */}
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="customerId" className="text-right">Cliente</Label>
+                            <div className="col-span-3">
+                                <Select required onValueChange={handleClientChange}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecione o cliente" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectGroup>
+                                            <SelectLabel>Clientes</SelectLabel>
+                                            {clients.filter(c => c.customerProfile).map(client => (
+                                                <SelectItem key={client.id} value={client.customerProfile!.id}>
+                                                    {client.name} ({client.email})
+                                                </SelectItem>
+                                            ))}
+                                        </SelectGroup>
+                                    </SelectContent>
+                                </Select>
+                                { /* Hidden input manual para garantir o envio correto */}
+                                <input type="hidden" name="customerId" value={selectedClientId} />
+                            </div>
+                        </div>
+
+                        {/* Serviço Select */}
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="serviceId" className="text-right">Serviço</Label>
+                            <div className="col-span-3">
+                                <Select required onValueChange={(value) => setSelectedServiceId(value)}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecione o serviço" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {services.map(service => (
+                                            <SelectItem key={service.id} value={service.id}>
+                                                {service.name} ({service.durationMin}min - R${Number(service.price)})
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <input type="hidden" name="serviceId" value={selectedServiceId} />
+                            </div>
+                        </div>
+
+                        {/* Funcionario Select */}
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="employeeId" className="text-right">Profissional</Label>
+                            <div className="col-span-3">
+                                <Select onValueChange={(value) => setSelectedEmployeeId(value)}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecione (Opcional)" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="unassigned">-- A definir --</SelectItem>
+                                        {employees.filter(e => e.employeeProfile).map(emp => (
+                                            <SelectItem key={emp.id} value={emp.employeeProfile!.id}>
+                                                {emp.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <input type="hidden" name="employeeId" value={selectedEmployeeId} />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="date" className="text-right">Data</Label>
+                            <Input
+                                id="date"
+                                name="date"
+                                type="date"
+                                className="col-span-3"
+                                required
+                                value={selectedDate}
+                                onChange={(e) => setSelectedDate(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="time" className="text-right">Hora</Label>
+                            <div className="col-span-3">
+                                <Select onValueChange={setSelectedTime} disabled={!selectedDate || loadingSlots}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder={loadingSlots ? "Carregando..." : (selectedTime || "Selecione o horário")} />
+                                    </SelectTrigger>
+                                    <SelectContent className="max-h-[200px]">
+                                        {availableSlots.length > 0 ? (
+                                            availableSlots.map(slot => (
+                                                <SelectItem key={slot.time} value={slot.time} disabled={!slot.available}>
+                                                    {slot.time} {slot.available ? "" : "(Ocupado)"}
+                                                </SelectItem>
+                                            ))
+                                        ) : (
+                                            <SelectItem value="none" disabled>Nenhum horário disponível</SelectItem>
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                                <input type="hidden" name="time" value={selectedTime} />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="address" className="text-right">Endereço</Label>
+                            <Input
+                                id="address"
+                                name="address"
+                                className="col-span-3"
+                                required
+                                value={address}
+                                onChange={(e) => setAddress(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="notes" className="text-right">Obs</Label>
+                            <Textarea
+                                id="notes"
+                                name="notes"
+                                className="col-span-3"
+                                placeholder="Detalhes adicionais..."
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button type="submit" disabled={isLoading} className="bg-violet-600 hover:bg-violet-700">
+                            {isLoading ? "Agendando..." : "Confirmar Agendamento"}
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+}
