@@ -9,7 +9,7 @@ import bcrypt from "bcryptjs";
 export async function createAdminUser(formData: FormData) {
     const session = await auth();
 
-    if (!session?.user || session.user.role !== "SUPER_ADMIN") {
+    if (!session?.user || (session.user.role as string) !== "SUPER_ADMIN") {
         throw new Error("Unauthorized");
     }
 
@@ -49,7 +49,7 @@ export async function createAdminUser(formData: FormData) {
 export async function deleteAdminUser(userId: string) {
     const session = await auth();
 
-    if (!session?.user || session.user.role !== "SUPER_ADMIN") {
+    if (!session?.user || (session.user.role as string) !== "SUPER_ADMIN") {
         throw new Error("Unauthorized");
     }
 
@@ -70,3 +70,29 @@ export async function deleteAdminUser(userId: string) {
         return { success: false, error: "Failed to delete user." };
     }
 }
+
+export async function updateAdminRole(userId: string, newRole: Role) {
+    const session = await auth();
+
+    if (!session?.user || (session.user.role as string) !== "SUPER_ADMIN") {
+        throw new Error("Unauthorized");
+    }
+
+    if (!["ADMIN", "SUPER_ADMIN"].includes(newRole)) {
+        throw new Error("Invalid role.");
+    }
+
+    try {
+        await db.user.update({
+            where: { id: userId },
+            data: { role: newRole }
+        });
+
+        revalidatePath("/admin/settings");
+        return { success: true };
+    } catch (error) {
+        console.error("Failed to update role:", error);
+        return { success: false, error: "Failed to update role." };
+    }
+}
+
