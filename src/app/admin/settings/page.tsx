@@ -29,7 +29,13 @@ export default async function SettingsPage() {
         }
     });
 
-    if (!tenant) return <div>Tenant não encontrado.</div>;
+    if (!tenant) return (
+        <div className="p-8">
+            <h1 className="text-2xl font-bold text-red-600">Tenant não encontrado.</h1>
+            <p className="mt-2 text-gray-600">ID na Sessão: <span className="font-mono bg-gray-100 p-1 px-2 rounded">{session.user.tenantId || "null"}</span></p>
+            <p className="mt-4">Por favor, saia do sistema e entre novamente para atualizar sua sessão.</p>
+        </div>
+    );
 
     return (
         <div className="flex-1 space-y-4 p-8 pt-6">
