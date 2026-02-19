@@ -13,7 +13,7 @@ export default function Home() {
       <div className="z-10 max-w-5xl w-full text-center space-y-8">
         <div className="space-y-4">
           <h1 className="text-5xl font-extrabold tracking-tight lg:text-7xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
-            CleanRoute SaaS v2
+            CleanRoute SaaS v3
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Sistema de Gestão - Versão Atualizada

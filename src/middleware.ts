@@ -19,8 +19,9 @@ export default auth((req) => {
     const isPublicRoute = publicRoutes.includes(nextUrl.pathname);
     const isAuthRoute = authRoutes.includes(nextUrl.pathname);
 
-    if (isApiAuthRoute) {
-        return null; // Don't protect API auth routes
+    // FIX: Garantir que /login e rotas públicas NUNCA entrem no loop
+    if (nextUrl.pathname === "/login" || isApiAuthRoute || isPublicRoute) {
+        return null;
     }
 
     if (isAuthRoute) {
