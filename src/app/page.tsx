@@ -33,7 +33,7 @@ export default function Home() {
                 <li className="flex items-center gap-2"><MapPin className="w-4 h-4" /> Live Tracking</li>
                 <li className="flex items-center gap-2"><Calculator className="w-4 h-4" /> Orçamento Instantâneo</li>
               </ul>
-              <Link href="/app">
+              <Link href="/login">
                 <Button className="w-full group">
                   Acessar App <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                 </Button>
@@ -52,7 +52,7 @@ export default function Home() {
                 <li className="flex items-center gap-2"><Users className="w-4 h-4" /> Gestão de Equipes</li>
                 <li className="flex items-center gap-2"><Calculator className="w-4 h-4" /> Controle Financeiro</li>
               </ul>
-              <Link href="/admin">
+              <Link href="/login">
                 <Button variant="default" className="w-full group">
                   Acessar Dashboard
                 </Button>
@@ -71,7 +71,7 @@ export default function Home() {
                 <li className="flex items-center gap-2"><ArrowRight className="w-4 h-4" /> Offline First</li>
                 <li className="flex items-center gap-2"><MapPin className="w-4 h-4" /> Rota Inteligente</li>
               </ul>
-              <Link href="/cleaner">
+              <Link href="/login">
                 <Button variant="outline" className="w-full group">
                   Acessar Rota <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                 </Button>
