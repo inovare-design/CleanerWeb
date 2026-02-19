@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
+import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 
 const CreateClientSchema = z.object({
@@ -51,47 +52,55 @@ export async function createClient(formData: FormData) {
             return { error: "Email já cadastrado." };
         }
 
-        const hashedPassword = await bcrypt.hash("mudar123", 10); // Senha padrão inicial
+        const hashedPassword = await bcrypt.hash("password123", 10);
 
-        // Criar Transaction para User + Customer Profile
-        const result = await db.$transaction(async (tx: any) => {
-            const tenant = await tx.tenant.findFirst(); // Pega o primeiro tenant (MVP)
+        try {
+            const session = await auth();
+            const tenantId = session?.user?.tenantId;
 
-            if (!tenant) throw new Error("Tenant não encontrado");
+            if (!tenantId) {
+                return { error: "Tenant não encontrado na sessão. Tente sair e entrar novamente." };
+            }
 
-            const newUser = await tx.user.create({
-                data: {
-                    name,
-                    email,
-                    password: hashedPassword,
-                    role: "CLIENT",
-                    tenantId: tenant.id,
-                    customerProfile: {
-                        create: {
-                            phone,
-                            address,
-                            // user: undefined removed
-                            document,
-                            birthDate: birthDate ? new Date(birthDate) : null,
-                            notes,
-                            // Property Details
-                            bedrooms: bedrooms ? parseInt(bedrooms) : null,
-                            bathrooms: bathrooms ? parseInt(bathrooms) : null,
-                            footage,
-                            accessInfo,
-                            tenantId: tenant.id
+            // Criar Transaction para User + Customer Profile
+            const result = await db.$transaction(async (tx: any) => {
+                const newUser = await tx.user.create({
+                    data: {
+                        name,
+                        email,
+                        password: hashedPassword,
+                        role: "CLIENT",
+                        tenantId: tenantId,
+                        customerProfile: {
+                            create: {
+                                phone,
+                                address,
+                                document,
+                                birthDate: birthDate ? new Date(birthDate) : null,
+                                notes,
+                                bedrooms: bedrooms ? parseInt(bedrooms) : null,
+                                bathrooms: bathrooms ? parseInt(bathrooms) : null,
+                                footage,
+                                accessInfo,
+                                tenantId: tenantId
+                            }
                         }
                     }
-                }
+                });
+                return newUser;
             });
-            return newUser;
-        });
 
-        revalidatePath("/admin/customers");
-        return { success: "Cliente cadastrado!", clientId: result.id };
+            revalidatePath("/admin/customers");
+            revalidatePath("/admin/appointments");
+            revalidatePath("/admin/calendar");
+            return { success: "Cliente cadastrado!", clientId: result.id };
 
-    } catch (error: any) {
-        console.error("Erro ao criar cliente:", error);
-        return { error: `Erro: ${error.message || "Erro interno ao criar cliente."}` };
+        } catch (error: any) {
+            console.error("Erro ao criar cliente:", error);
+            return { error: `Erro: ${error.message || "Erro interno ao criar cliente."}` };
+        }
+    } catch (outerError: any) {
+        console.error("Erro externo:", outerError);
+        return { error: "Erro inesperado do servidor." };
     }
 }

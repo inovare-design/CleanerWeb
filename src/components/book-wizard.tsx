@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CheckCircle, Calendar as CalendarIcon, User, MapPin, Clock, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { CheckCircle, Calendar as CalendarIcon, User, MapPin, Clock, ChevronLeft, ChevronRight, Loader2, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { bookAppointment } from "@/actions/book-appointment";

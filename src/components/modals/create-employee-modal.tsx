@@ -85,18 +85,21 @@ export function CreateEmployeeModal() {
                                 required
                             />
                         </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="password" className="text-right">
+                        <div className="grid grid-cols-4 items-start gap-4">
+                            <Label htmlFor="password" className="text-right mt-3">
                                 Senha
                             </Label>
-                            <Input
-                                id="password"
-                                name="password"
-                                type="password"
-                                placeholder="Defina a senha dela"
-                                className="col-span-3"
-                                required
-                            />
+                            <div className="col-span-3 space-y-1">
+                                <Input
+                                    id="password"
+                                    name="password"
+                                    type="password"
+                                    placeholder="Defina a senha dela"
+                                    required
+                                    minLength={6}
+                                />
+                                <p className="text-[10px] text-muted-foreground italic">Mínimo de 6 caracteres.</p>
+                            </div>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="phone" className="text-right">

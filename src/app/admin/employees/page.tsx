@@ -149,8 +149,22 @@ export default async function EmployeesPage(props: {
                             ))}
                             {employees.length === 0 && (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="h-24 text-center">
-                                        Nenhum funcionário encontrado.
+                                    <TableCell colSpan={5} className="h-48 text-center">
+                                        <div className="flex flex-col items-center justify-center space-y-3 opacity-60">
+                                            <div className="p-4 bg-zinc-100 dark:bg-zinc-800 rounded-full">
+                                                <UserIcon className="w-8 h-8 text-zinc-400" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-lg font-semibold">Nenhum profissional encontrado</p>
+                                                <p className="text-sm text-muted-foreground max-w-[300px] mx-auto">
+                                                    {query
+                                                        ? `Não encontramos resultados para "${query}". Tente buscar por outro nome ou email.`
+                                                        : "Sua equipe ainda está vazia. Adicione seu primeiro funcionário para começar a gerenciar os agendamentos."
+                                                    }
+                                                </p>
+                                            </div>
+                                            {!query && <CreateEmployeeModal />}
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             )}

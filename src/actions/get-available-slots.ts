@@ -1,5 +1,6 @@
 "use server";
 
+import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { addMinutes, format, isSameDay, parse, setHours, setMinutes, startOfDay } from "date-fns";
 
@@ -12,11 +13,12 @@ export async function getAvailableSlots(dateStr: string, serviceDurationMin: num
     if (!dateStr) return { error: "Data não fornecida" };
 
     try {
-        const tenant = await db.tenant.findFirst();
-        if (!tenant) return { error: "Tenant não encontrado" };
+        const session = await auth();
+        const tenantId = session?.user?.tenantId;
+        if (!tenantId) return { error: "Tenant não encontrado na sessão" };
 
         const config = await db.schedulingConfig.findUnique({
-            where: { tenantId: tenant.id }
+            where: { tenantId: tenantId }
         });
 
         // 1. Check Holidays
@@ -50,7 +52,7 @@ export async function getAvailableSlots(dateStr: string, serviceDurationMin: num
 
         const appointments = await db.appointment.findMany({
             where: {
-                tenantId: tenant.id,
+                tenantId: tenantId,
                 startTime: {
                     gte: startOfDayDate,
                     lt: nextDayDate

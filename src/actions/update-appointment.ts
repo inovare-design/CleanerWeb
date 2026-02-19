@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 
 const UpdateAppointmentSchema = z.object({
@@ -39,8 +40,9 @@ export async function updateAppointment(formData: FormData) {
     const { id, customerId, serviceId, employeeId, date, time, address, notes, status } = validatedFields.data;
 
     try {
-        const tenant = await db.tenant.findFirst();
-        if (!tenant) throw new Error("Tenant não encontrado");
+        const session = await auth();
+        const tenantId = session?.user?.tenantId;
+        if (!tenantId) throw new Error("Tenant não encontrado na sessão");
 
         // Recalculate end time if service changed or time changed
         const service = await db.service.findUnique({
@@ -53,7 +55,7 @@ export async function updateAppointment(formData: FormData) {
         const endTime = new Date(startTime.getTime() + service.durationMin * 60000);
 
         await db.appointment.update({
-            where: { id },
+            where: { id, tenantId: tenantId },
             data: {
                 customerId,
                 serviceId,

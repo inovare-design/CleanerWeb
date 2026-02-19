@@ -118,8 +118,11 @@ export function CreateAppointmentModal({ clients, services, employees }: PropTyp
                         )}
 
                         {/* Cliente Select */}
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="customerId" className="text-right">Cliente</Label>
+                        <div className="grid grid-cols-4 items-start gap-4">
+                            <div className="text-right pt-2">
+                                <Label htmlFor="customerId">Cliente</Label>
+                                <p className="text-[10px] text-muted-foreground">Quem receberá o serviço?</p>
+                            </div>
                             <div className="col-span-3">
                                 <Select required onValueChange={handleClientChange}>
                                     <SelectTrigger>
@@ -136,14 +139,16 @@ export function CreateAppointmentModal({ clients, services, employees }: PropTyp
                                         </SelectGroup>
                                     </SelectContent>
                                 </Select>
-                                { /* Hidden input manual para garantir o envio correto */}
                                 <input type="hidden" name="customerId" value={selectedClientId} />
                             </div>
                         </div>
 
                         {/* Serviço Select */}
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="serviceId" className="text-right">Serviço</Label>
+                        <div className="grid grid-cols-4 items-start gap-4">
+                            <div className="text-right pt-2">
+                                <Label htmlFor="serviceId">Serviço</Label>
+                                <p className="text-[10px] text-muted-foreground">O que será feito?</p>
+                            </div>
                             <div className="col-span-3">
                                 <Select required onValueChange={(value) => setSelectedServiceId(value)}>
                                     <SelectTrigger>
@@ -162,8 +167,11 @@ export function CreateAppointmentModal({ clients, services, employees }: PropTyp
                         </div>
 
                         {/* Funcionario Select */}
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="employeeId" className="text-right">Profissional</Label>
+                        <div className="grid grid-cols-4 items-start gap-4">
+                            <div className="text-right pt-2">
+                                <Label htmlFor="employeeId">Profissional</Label>
+                                <p className="text-[10px] text-muted-foreground">Opcional</p>
+                            </div>
                             <div className="col-span-3">
                                 <Select onValueChange={(value) => setSelectedEmployeeId(value)}>
                                     <SelectTrigger>
@@ -182,25 +190,23 @@ export function CreateAppointmentModal({ clients, services, employees }: PropTyp
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="date" className="text-right">Data</Label>
-                            <Input
-                                id="date"
-                                name="date"
-                                type="date"
-                                className="col-span-3"
-                                required
-                                value={selectedDate}
-                                onChange={(e) => setSelectedDate(e.target.value)}
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="time" className="text-right">Hora</Label>
-                            <div className="col-span-3">
+                        <div className="grid grid-cols-4 items-start gap-4">
+                            <div className="text-right pt-2">
+                                <Label htmlFor="date">Data & Hora</Label>
+                                <p className="text-[10px] text-muted-foreground">Quando?</p>
+                            </div>
+                            <div className="col-span-3 space-y-2">
+                                <Input
+                                    id="date"
+                                    name="date"
+                                    type="date"
+                                    required
+                                    value={selectedDate}
+                                    onChange={(e) => setSelectedDate(e.target.value)}
+                                />
                                 <Select onValueChange={setSelectedTime} disabled={!selectedDate || loadingSlots}>
                                     <SelectTrigger>
-                                        <SelectValue placeholder={loadingSlots ? "Carregando..." : (selectedTime || "Selecione o horário")} />
+                                        <SelectValue placeholder={loadingSlots ? "Carregando horários..." : (selectedTime || "Selecione o horário")} />
                                     </SelectTrigger>
                                     <SelectContent className="max-h-[200px]">
                                         {availableSlots.length > 0 ? (
@@ -218,8 +224,11 @@ export function CreateAppointmentModal({ clients, services, employees }: PropTyp
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="address" className="text-right">Endereço</Label>
+                        <div className="grid grid-cols-4 items-start gap-4">
+                            <div className="text-right pt-2">
+                                <Label htmlFor="address">Endereço</Label>
+                                <p className="text-[10px] text-muted-foreground">Onde?</p>
+                            </div>
                             <Input
                                 id="address"
                                 name="address"
@@ -227,16 +236,20 @@ export function CreateAppointmentModal({ clients, services, employees }: PropTyp
                                 required
                                 value={address}
                                 onChange={(e) => setAddress(e.target.value)}
+                                placeholder="Rua, número, complemento..."
                             />
                         </div>
 
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="notes" className="text-right">Obs</Label>
+                        <div className="grid grid-cols-4 items-start gap-4">
+                            <div className="text-right pt-2">
+                                <Label htmlFor="notes">Observações</Label>
+                                <p className="text-[10px] text-muted-foreground">Detalhes extra</p>
+                            </div>
                             <Textarea
                                 id="notes"
                                 name="notes"
                                 className="col-span-3"
-                                placeholder="Detalhes adicionais..."
+                                placeholder="Ex: Chave está no tapete, cuidado com o pet..."
                             />
                         </div>
                     </div>

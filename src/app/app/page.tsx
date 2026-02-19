@@ -1,13 +1,15 @@
 import { auth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, MapPin, ArrowRight, Star, Clock, PlusCircle } from "lucide-react";
+import { Calendar, MapPin, ArrowRight, Star, Clock, PlusCircle, CheckCircle2, History, Users } from "lucide-react";
 import Link from "next/link";
 import { db } from "@/lib/db";
 
+/**
+ * Busca dados específicos do cliente para o dashboard.
+ * Otimizado para buscar estatísticas e o próximo agendamento simultaneamente.
+ */
 async function getClientData(userId: string) {
-    // Buscar próximo agendamento do cliente
-    // Precisamos achar o customerId ligado ao userId
     const userWithCustomer = await db.user.findUnique({
         where: { id: userId },
         include: { customerProfile: true }
@@ -15,17 +17,39 @@ async function getClientData(userId: string) {
 
     if (!userWithCustomer?.customerProfile) return null;
 
-    const nextAppointment = await db.appointment.findFirst({
-        where: {
-            customerId: userWithCustomer.customerProfile.id,
-            startTime: { gte: new Date() },
-            status: { in: ['PENDING', 'CONFIRMED'] }
-        },
-        include: { service: true, employee: { include: { user: true } } },
-        orderBy: { startTime: 'asc' }
-    });
+    const customerId = userWithCustomer.customerProfile.id;
 
-    return { nextAppointment, userName: userWithCustomer.name };
+    // Executamos as consultas em paralelo para carregar o dashboard mais rápido
+    const [nextAppointment, totalAppointments, totalInvestedResult] = await Promise.all([
+        // 1. Busca o agendamento mais próximo (hoje ou no futuro)
+        db.appointment.findFirst({
+            where: {
+                customerId,
+                startTime: { gte: new Date() },
+                status: { in: ['PENDING', 'CONFIRMED'] }
+            },
+            include: { service: true, employee: { include: { user: true } } },
+            orderBy: { startTime: 'asc' }
+        }),
+        // 2. Conta todos os agendamentos já feitos por este cliente
+        db.appointment.count({
+            where: { customerId }
+        }),
+        // 3. Soma o valor total investido apenas em serviços concluídos
+        db.appointment.aggregate({
+            where: { customerId, status: "COMPLETED" },
+            _sum: { price: true }
+        })
+    ]);
+
+    const totalInvested = Number(totalInvestedResult._sum.price || 0);
+
+    return {
+        nextAppointment,
+        userName: userWithCustomer.name,
+        totalAppointments,
+        totalInvested
+    };
 }
 
 export default async function ClientDashboard() {
@@ -37,78 +61,120 @@ export default async function ClientDashboard() {
     return (
         <div className="space-y-6">
             {/* Welcome Section */}
-            <section className="space-y-1">
-                <h1 className="text-2xl font-bold tracking-tight">
-                    Olá, {session.user.name?.split(" ")[0]}! 👋
-                </h1>
-                <p className="text-muted-foreground">
-                    Sua casa merece brilhar. O que vamos agendar hoje?
-                </p>
+            <section className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-1">
+                    <h1 className="text-3xl font-bold tracking-tight text-zinc-900 border-b-2 border-primary w-fit pr-8">
+                        Olá, {session.user.name?.split(" ")[0]}! 👋
+                    </h1>
+                    <p className="text-muted-foreground">
+                        Sua casa merece brilhar. O que vamos agendar hoje?
+                    </p>
+                </div>
+
+                <div className="flex gap-4">
+                    <Card className="px-4 py-2 bg-zinc-50 border-0 shadow-none flex items-center gap-3">
+                        <History className="w-5 h-5 text-violet-500" />
+                        <div>
+                            <p className="text-[10px] uppercase font-bold text-muted-foreground leading-none">Total de Reservas</p>
+                            <p className="text-lg font-bold">{data?.totalAppointments || 0}</p>
+                        </div>
+                    </Card>
+                    <Card className="px-4 py-2 bg-zinc-50 border-0 shadow-none flex items-center gap-3">
+                        <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                        <div>
+                            <p className="text-[10px] uppercase font-bold text-muted-foreground leading-none">Total Investido</p>
+                            <p className="text-lg font-bold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data?.totalInvested || 0)}</p>
+                        </div>
+                    </Card>
+                </div>
             </section>
 
             {/* Next Appointment Card */}
             {data?.nextAppointment ? (
-                <Card className="border-blue-100 bg-gradient-to-br from-white to-blue-50/50 shadow-sm overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                        <Calendar className="w-32 h-32 text-blue-900" />
+                <Card className="border-blue-100 bg-gradient-to-br from-white to-blue-50/30 shadow-md overflow-hidden relative group border-2">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none group-hover:scale-110 transition-all duration-500">
+                        <Calendar className="w-32 h-32 text-blue-600 rotate-12" />
                     </div>
-                    <CardHeader className="pb-2 relative">
+                    <CardHeader className="pb-2 relative pt-6 px-6">
                         <div className="flex items-center justify-between">
-                            <CardTitle className="text-sm font-medium text-blue-600 uppercase tracking-wider">
-                                Próxima Limpeza
-                            </CardTitle>
-                            <span className="text-xs font-medium bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                                {data.nextAppointment.status === 'CONFIRMED' ? 'Confirmado' : 'Aguardando'}
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+                                <CardTitle className="text-xs font-bold text-blue-600 uppercase tracking-[0.2em]">
+                                    Compromisso Confirmado
+                                </CardTitle>
+                            </div>
+                            <span className={`text-[10px] font-black px-3 py-1 rounded-full shadow-sm ${data.nextAppointment.status === 'CONFIRMED'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-amber-100 text-amber-700'
+                                }`}>
+                                {data.nextAppointment.status === 'CONFIRMED' ? 'PRONTO PARA BRILHAR' : 'AGUARDANDO APROVAÇÃO'}
                             </span>
                         </div>
                     </CardHeader>
-                    <CardContent className="relative">
-                        <div className="flex flex-col gap-1 mb-4">
-                            <h3 className="text-2xl font-bold text-gray-900">
-                                {new Date(data.nextAppointment.startTime).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
-                            </h3>
-                            <div className="flex items-center text-gray-500">
-                                <Clock className="w-4 h-4 mr-1" />
-                                <span>{new Date(data.nextAppointment.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                <span className="mx-2">•</span>
-                                <span>{data.nextAppointment.service.name}</span>
+                    <CardContent className="relative px-6 pb-6 mt-2">
+                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                            <div>
+                                <h3 className="text-4xl font-black text-zinc-900 tracking-tight capitalize">
+                                    {new Date(data.nextAppointment.startTime).toLocaleDateString('pt-BR', { weekday: 'long' })},
+                                    <br />
+                                    <span className="text-blue-600">
+                                        {new Date(data.nextAppointment.startTime).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}
+                                    </span>
+                                </h3>
+                                <div className="flex items-center text-zinc-600 font-semibold mt-4 bg-white/50 w-fit px-3 py-1.5 rounded-lg border border-blue-50">
+                                    <Clock className="w-4 h-4 mr-2 text-blue-500" />
+                                    <span>{new Date(data.nextAppointment.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                    <span className="mx-3 opacity-20">|</span>
+                                    <span className="text-blue-700">{data.nextAppointment.service.name}</span>
+                                </div>
                             </div>
-                        </div>
 
-                        <div className="flex items-center gap-3 bg-white/60 p-3 rounded-lg border border-blue-100/50">
-                            {data.nextAppointment.employee ? (
-                                <>
-                                    <div
-                                        className="h-10 w-10 rounded-full flex items-center justify-center text-white font-bold shadow-sm"
-                                        style={{ backgroundColor: data.nextAppointment.employee.color || '#3b82f6' }}
-                                    >
-                                        {data.nextAppointment.employee.user.name?.substring(0, 2).toUpperCase()}
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-medium">{data.nextAppointment.employee.user.name}</p>
-                                        <div className="flex items-center text-xs text-yellow-500">
-                                            <Star className="w-3 h-3 fill-current" />
-                                            <span className="ml-1 text-gray-500">4.9 (120)</span>
+                            <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-blue-100 shadow-sm transition-all hover:shadow-md min-w-[300px]">
+                                {data.nextAppointment.employee ? (
+                                    <>
+                                        <div
+                                            className="h-12 w-12 rounded-xl flex items-center justify-center text-white font-black shadow-lg shadow-blue-200"
+                                            style={{ backgroundColor: data.nextAppointment.employee.color || '#3b82f6' }}
+                                        >
+                                            {data.nextAppointment.employee.user.name?.substring(0, 2).toUpperCase()}
                                         </div>
+                                        <div className="flex-1">
+                                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-tighter">Sua Profissional</p>
+                                            <p className="text-base font-bold text-zinc-900">{data.nextAppointment.employee.user.name}</p>
+                                        </div>
+                                        <div className="flex flex-col items-end">
+                                            <div className="flex items-center text-amber-500 mb-1">
+                                                <Star className="w-3 h-3 fill-current" />
+                                                <span className="ml-1 text-xs font-bold font-mono">4.9</span>
+                                            </div>
+                                            <Button variant="ghost" size="sm" className="h-7 text-[10px] font-bold uppercase tracking-wider text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2">
+                                                Mensagem
+                                            </Button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="text-xs text-gray-400 italic flex items-center gap-3 p-2">
+                                        <div className="w-10 h-10 rounded-xl bg-zinc-50 border border-dashed flex items-center justify-center">
+                                            <Users className="w-4 h-4 text-zinc-300" />
+                                        </div>
+                                        Definindo melhor profissional...
                                     </div>
-                                </>
-                            ) : (
-                                <div className="text-sm text-gray-500 italic">Profissional será atribuído em breve.</div>
-                            )}
+                                )}
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
             ) : (
-                <Card className="border-dashed border-2 shadow-none bg-transparent">
-                    <CardContent className="flex flex-col items-center justify-center py-10 text-center">
-                        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                            <Calendar className="w-6 h-6 text-gray-400" />
+                <Card className="border-dashed border-2 shadow-sm bg-zinc-50/50 hover:bg-white transition-colors">
+                    <CardContent className="flex flex-col items-center justify-center py-14 text-center">
+                        <div className="w-16 h-16 bg-white border shadow-sm rounded-full flex items-center justify-center mb-6">
+                            <Calendar className="w-8 h-8 text-zinc-300" />
                         </div>
-                        <h3 className="text-lg font-medium">Nenhuma limpeza agendada</h3>
-                        <p className="text-sm text-muted-foreground max-w-xs mb-6">
-                            Mantenha sua casa impecável. Agende sua próxima limpeza em segundos.
+                        <h3 className="text-xl font-bold text-zinc-900">Nenhuma limpeza agendada</h3>
+                        <p className="text-sm text-muted-foreground max-w-xs mb-8">
+                            Mantenha sua casa impecável e sua rotina organizada com nossos serviços profissionais.
                         </p>
-                        <Button asChild className="bg-blue-600 hover:bg-blue-700 rounded-full px-8">
+                        <Button asChild className="bg-blue-600 hover:bg-blue-700 rounded-full px-10 h-11 text-base font-bold shadow-lg shadow-blue-200 transition-all active:scale-95">
                             <Link href="/app/book">Agendar Agora</Link>
                         </Button>
                     </CardContent>
@@ -116,35 +182,39 @@ export default async function ClientDashboard() {
             )}
 
             {/* Quick Actions Grid */}
-            <h2 className="text-lg font-semibold pt-4">Acesso Rápido</h2>
-            <div className="grid grid-cols-2 gap-4">
-                <Link href="/app/book" className="block group">
-                    <Card className="h-full hover:border-blue-200 hover:shadow-md transition-all cursor-pointer group-hover:-translate-y-1">
-                        <CardContent className="p-4 flex flex-col items-center text-center space-y-3">
-                            <div className="p-3 bg-blue-50 text-blue-600 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                                <PlusCircle className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <span className="font-medium block">Novo Agendamento</span>
-                                <span className="text-xs text-muted-foreground">Orçamento instantâneo</span>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </Link>
+            <div className="pt-6">
+                <h2 className="text-xl font-bold mb-4 text-zinc-900">Acesso Rápido</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Link href="/app/book" className="block group">
+                        <Card className="h-full border-0 shadow-md hover:shadow-xl transition-all cursor-pointer group-hover:-translate-y-1 bg-gradient-to-br from-white to-zinc-50">
+                            <CardContent className="p-6 flex items-center gap-6">
+                                <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                                    <PlusCircle className="w-8 h-8" />
+                                </div>
+                                <div>
+                                    <span className="font-bold text-lg block text-zinc-900">Novo Agendamento</span>
+                                    <span className="text-sm text-muted-foreground">Reserve em menos de 1 minuto</span>
+                                </div>
+                                <ArrowRight className="w-5 h-5 ml-auto text-zinc-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+                            </CardContent>
+                        </Card>
+                    </Link>
 
-                <Link href="/app/appointments" className="block group">
-                    <Card className="h-full hover:border-violet-200 hover:shadow-md transition-all cursor-pointer group-hover:-translate-y-1">
-                        <CardContent className="p-4 flex flex-col items-center text-center space-y-3">
-                            <div className="p-3 bg-violet-50 text-violet-600 rounded-xl group-hover:bg-violet-600 group-hover:text-white transition-colors">
-                                <Calendar className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <span className="font-medium block">Histórico</span>
-                                <span className="text-xs text-muted-foreground">Serviços anteriores</span>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </Link>
+                    <Link href="/app/appointments" className="block group">
+                        <Card className="h-full border-0 shadow-md hover:shadow-xl transition-all cursor-pointer group-hover:-translate-y-1 bg-gradient-to-br from-white to-zinc-50">
+                            <CardContent className="p-6 flex items-center gap-6">
+                                <div className="p-4 bg-violet-50 text-violet-600 rounded-2xl group-hover:bg-violet-600 group-hover:text-white transition-all shadow-sm">
+                                    <Calendar className="w-8 h-8" />
+                                </div>
+                                <div>
+                                    <span className="font-bold text-lg block text-zinc-900">Histórico de Limpezas</span>
+                                    <span className="text-sm text-muted-foreground">Gerencie seus serviços anteriores</span>
+                                </div>
+                                <ArrowRight className="w-5 h-5 ml-auto text-zinc-300 group-hover:text-violet-600 group-hover:translate-x-1 transition-all" />
+                            </CardContent>
+                        </Card>
+                    </Link>
+                </div>
             </div>
         </div>
     );

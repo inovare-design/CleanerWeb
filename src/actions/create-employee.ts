@@ -33,7 +33,9 @@ export async function createEmployee(formData: FormData) {
     });
 
     if (!validatedFields.success) {
-        return { error: "Campos inválidos. Verifique os dados." };
+        const errors = validatedFields.error.flatten().fieldErrors;
+        const firstError = Object.values(errors).flat()[0];
+        return { error: firstError || "Campos inválidos. Verifique os dados." };
     }
 
     const { name, email, password, phone, color } = validatedFields.data;

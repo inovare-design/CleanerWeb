@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 
 const CreateServiceSchema = z.object({
@@ -28,8 +29,9 @@ export async function createService(formData: FormData) {
     const { name, description, price, durationMin } = validatedFields.data;
 
     try {
-        const tenant = await db.tenant.findFirst(); // MVP: Single tenant logic for now
-        if (!tenant) throw new Error("Tenant não encontrado");
+        const session = await auth();
+        const tenantId = session?.user?.tenantId;
+        if (!tenantId) throw new Error("Tenant não encontrado na sessão");
 
         await db.service.create({
             data: {
@@ -37,11 +39,12 @@ export async function createService(formData: FormData) {
                 description,
                 price,
                 durationMin,
-                tenantId: tenant.id,
+                tenantId: tenantId,
             },
         });
 
         revalidatePath("/admin/services");
+        revalidatePath("/admin/appointments");
         return { success: "Serviço criado com sucesso!" };
 
     } catch (error) {

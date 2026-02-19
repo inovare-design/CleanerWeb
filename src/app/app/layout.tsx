@@ -13,7 +13,9 @@ export default async function ClientLayout({
         redirect("/login");
     }
 
-    // TODO: Verificar se role é CLIENT (ou permitir ADMIN ver também)
+    if (session.user.role !== "CLIENT" && session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN") {
+        redirect("/");
+    }
 
     return (
         <div className="min-h-screen bg-gray-50/50 flex flex-col">

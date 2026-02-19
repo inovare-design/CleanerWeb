@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 
 const CreateAppointmentSchema = z.object({
@@ -37,8 +38,9 @@ export async function createAppointment(formData: FormData) {
     const { customerId, serviceId, employeeId, date, time, address, notes } = validatedFields.data;
 
     try {
-        const tenant = await db.tenant.findFirst();
-        if (!tenant) throw new Error("Tenant não encontrado");
+        const session = await auth();
+        const tenantId = session?.user?.tenantId;
+        if (!tenantId) throw new Error("Tenant não encontrado na sessão");
 
         // Buscar details do serviço para pegar o preço e duração
         const service = await db.service.findUnique({
@@ -58,7 +60,7 @@ export async function createAppointment(formData: FormData) {
 
         await db.appointment.create({
             data: {
-                tenantId: tenant.id,
+                tenantId: tenantId,
                 customerId,
                 serviceId,
                 employeeId: employeeId === "unassigned" ? null : employeeId, // Tratar 'sem funcionário'
@@ -72,6 +74,7 @@ export async function createAppointment(formData: FormData) {
         });
 
         revalidatePath("/admin/appointments");
+        revalidatePath("/admin/calendar");
         return { success: "Agendamento criado com sucesso!" };
 
     } catch (error: any) {

@@ -29,7 +29,19 @@ export const authRoutes = [
 export const apiAuthPrefix = "/api/auth";
 
 /**
- * The default redirect path after logging in
+ * The default redirect path after logging in for Admins
  * @type {string}
  */
 export const DEFAULT_LOGIN_REDIRECT = "/admin";
+
+/**
+ * The default redirect path after logging in for Clients
+ * @type {string}
+ */
+export const DEFAULT_CLIENT_REDIRECT = "/app";
+
+/**
+ * The default redirect path after logging in for Cleaners
+ * @type {string}
+ */
+export const DEFAULT_CLEANER_REDIRECT = "/cleaner";

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { FormError, FormSuccess } from "@/components/form-feedback";
 import { login } from "@/actions/login";
 import { Loader2 } from "lucide-react";
+import { useCurrentUser } from "@/hooks/use-current-user";
 
 // Schema local igual ao do server action
 const LoginSchema = z.object({
@@ -43,11 +44,12 @@ export default function LoginPage() {
                     if (data?.error) {
                         setError(data.error);
                     } else {
-                        // Sucesso! Redirecionar.
-                        // O redirecionamento real acontece no server action se não houver erro, 
-                        // mas aqui podemos forçar ou mostrar sucesso.
-                        // Para login com Auth.js, o redirect padrão é automático.
-                        router.push('/admin');
+                        // O Auth.js demora um pouco para atualizar a sessão no cliente 
+                        // após o login no servidor com redirect: false.
+                        // Forçamos um refresh ou redirecionamento direto se já tivéssemos o user.
+                        // Como não temos o user aqui ainda de forma síncrona, 
+                        // vamos usar o window.location para forçar o middleware a reprocessar
+                        window.location.href = "/";
                     }
                 });
         });

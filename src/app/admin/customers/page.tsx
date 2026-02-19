@@ -25,11 +25,12 @@ import {
 import { db } from "@/lib/db";
 import { CreateClientModal } from "@/components/modals/create-client-modal";
 
-async function getClientes(query: string) {
+async function getClientes(query: string, tenantId: string) {
     // Buscar usuários com role CLIENT e seus perfis
     const clients = await db.user.findMany({
         where: {
             role: "CLIENT",
+            tenantId,
             OR: [
                 { name: { contains: query } },
                 { email: { contains: query } }
@@ -68,7 +69,11 @@ export default async function CustomersPage(props: {
 
     const searchParams = await props.searchParams;
     const query = searchParams?.q || "";
-    const clients = await getClientes(query);
+
+    const tenantId = session.user.tenantId;
+    if (!tenantId) return <div>Erro: Usuário sem tenant vinculado.</div>;
+
+    const clients = await getClientes(query, tenantId);
 
     return (
         <div className="p-8 space-y-8 h-full flex flex-col">
