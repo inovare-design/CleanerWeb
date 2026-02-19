@@ -14,6 +14,15 @@ model Tenant {
   slug             String            @unique
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
+  address          String?
+  phone            String?
+  email            String?
+  taxId            String? // CNPJ/CPF
+  bankName         String?
+  bankAgency       String?
+  bankAccount      String?
+  idealId          String? // ID da conta IDEAL
+
   appointments     Appointment[]
   customers        Customer[]
   employees        Employee[]
@@ -137,6 +146,7 @@ model SchedulingConfig {
 }
 
 enum Role {
+  SUPER_ADMIN
   ADMIN
   CLEANER
   CLIENT

@@ -4,30 +4,37 @@ const prisma = new PrismaClient()
 
 async function main() {
     // 1. Criar Tenant (Empresa de Limpeza)
-    const tenant = await prisma.tenant.create({
-        data: {
+    const tenant = await prisma.tenant.upsert({
+        where: { slug: 'cleanfast' },
+        update: {},
+        create: {
             name: 'CleanFast Services',
             slug: 'cleanfast',
         },
     })
 
-    console.log('Tenant criado:', tenant.name)
+    console.log('Tenant verificado/criado:', tenant.name)
 
-    // 2. Criar Usuário Admin
-    const admin = await prisma.user.create({
-        data: {
+    // 2. Criar Usuário Admin (SUPER_ADMIN)
+    const admin = await prisma.user.upsert({
+        where: { email: 'admin@cleanfast.com' },
+        update: { role: 'SUPER_ADMIN' },
+        create: {
             email: 'admin@cleanfast.com',
             name: 'Admin User',
             password: await bcrypt.hash('password123', 10),
-            role: 'ADMIN',
+            role: 'SUPER_ADMIN',
             tenantId: tenant.id,
         },
     })
-    console.log('Admin criado:', admin.email)
+    console.log('Admin verificado/atualizado para SUPER_ADMIN:', admin.email)
 
     // 3. Criar Serviços
-    const service = await prisma.service.create({
-        data: {
+    const service = await prisma.service.upsert({
+        where: { id: 'default-service-id' }, // We'll keep it static for seed simplicity if possible, or just find
+        update: {},
+        create: {
+            id: 'default-service-id',
             name: 'Limpeza Residencial Padrão',
             description: 'Limpeza de manutenção (até 100m²)',
             price: 150.00,
@@ -37,8 +44,10 @@ async function main() {
     })
 
     // 4. Criar Cleaner
-    const cleanerUser = await prisma.user.create({
-        data: {
+    const cleanerUser = await prisma.user.upsert({
+        where: { email: 'joao.cleaner@cleanfast.com' },
+        update: { role: 'CLEANER' },
+        create: {
             email: 'joao.cleaner@cleanfast.com',
             name: 'João Silva',
             password: await bcrypt.hash('password123', 10),
@@ -58,8 +67,10 @@ async function main() {
     })
 
     // 5. Criar Cliente
-    const clientUser = await prisma.user.create({
-        data: {
+    const clientUser = await prisma.user.upsert({
+        where: { email: 'maria.cliente@gmail.com' },
+        update: { role: 'CLIENT' },
+        create: {
             email: 'maria.cliente@gmail.com',
             name: 'Maria Oliveira',
             password: await bcrypt.hash('password123', 10),
@@ -75,21 +86,6 @@ async function main() {
         },
         include: {
             customerProfile: true
-        }
-    })
-
-    // 6. Criar Agendamento Exemplo
-    await prisma.appointment.create({
-        data: {
-            startTime: new Date(new Date().setHours(10, 0, 0, 0)), // Hoje as 10h
-            endTime: new Date(new Date().setHours(12, 0, 0, 0)),   // Hoje as 12h
-            status: 'CONFIRMED',
-            price: 150.00,
-            address: 'Rua das Flores, 123 - Centro',
-            serviceId: service.id,
-            customerId: clientUser.customerProfile!.id, // Non-null assertion pois acabamos de criar
-            employeeId: cleanerUser.employeeProfile!.id,
-            tenantId: tenant.id,
         }
     })
 

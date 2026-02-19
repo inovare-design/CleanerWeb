@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 
 export async function saveSchedulingConfig(formData: FormData) {
     const session = await auth();
-    if (!session || session.user.role !== "ADMIN") {
+    if (!session || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN")) {
         return { error: "Não autorizado." };
     }
 

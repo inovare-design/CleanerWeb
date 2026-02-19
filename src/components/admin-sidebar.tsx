@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { Button } from "./ui/button";
+import { ExtendedUser } from "../../next-auth";
 
 const routes = [
     {
@@ -76,8 +77,19 @@ const routes = [
     },
 ];
 
-export const AdminSidebar = () => {
+interface AdminSidebarProps {
+    user: ExtendedUser;
+}
+
+export const AdminSidebar = ({ user }: AdminSidebarProps) => {
     const pathname = usePathname();
+
+    const filteredRoutes = routes.filter(route => {
+        if (route.href === "/admin/settings") {
+            return user.role === "SUPER_ADMIN";
+        }
+        return true;
+    });
 
     return (
         <div className="space-y-4 py-4 flex flex-col h-full bg-[#111827] text-white border-r border-[#1f2937]">
@@ -96,7 +108,7 @@ export const AdminSidebar = () => {
                     </div>
                 </Link>
                 <div className="space-y-1">
-                    {routes.map((route) => (
+                    {filteredRoutes.map((route) => (
                         <Link
                             key={route.href}
                             href={route.href}
@@ -120,11 +132,11 @@ export const AdminSidebar = () => {
             <div className="px-3 py-4 border-t border-[#1f2937] bg-[#0f1523]/50">
                 <div className="flex items-center gap-3 px-2 mb-3">
                     <div className="h-9 w-9 rounded-full bg-indigo-500 flex items-center justify-center text-sm font-bold border-2 border-[#1f2937]">
-                        AD
+                        {user.name?.substring(0, 2).toUpperCase() || "AD"}
                     </div>
                     <div className="flex-1 overflow-hidden">
-                        <p className="text-sm font-medium text-white truncate">Admin User</p>
-                        <p className="text-xs text-gray-400 truncate">admin@cleanfast.com</p>
+                        <p className="text-sm font-medium text-white truncate">{user.name}</p>
+                        <p className="text-xs text-gray-400 truncate">{user.email}</p>
                     </div>
                 </div>
                 <Button
