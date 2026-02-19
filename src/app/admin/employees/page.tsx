@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { db } from "@/lib/db";
 import { CreateEmployeeModal } from "@/components/modals/create-employee-modal";
+import { EmployeeUserActions } from "@/components/employee-user-actions";
 
 // Definir tipo para o funcionário com perfil
 type EmployeeWithProfile = {
@@ -142,21 +143,7 @@ export default async function EmployeesPage(props: {
                                         </span>
                                     </TableCell>
                                     <TableCell>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                                    <span className="sr-only">Abrir menu</span>
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                                                <DropdownMenuItem>Ver Agenda</DropdownMenuItem>
-                                                <DropdownMenuItem>Editar Perfil</DropdownMenuItem>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem className="text-red-600">Desativar</DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
+                                        <EmployeeUserActions userId={emp.id} />
                                     </TableCell>
                                 </TableRow>
                             ))}

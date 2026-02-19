@@ -51,7 +51,7 @@ export function CreateEmployeeModal() {
                     <DialogHeader>
                         <DialogTitle>Novo Membro da Equipe</DialogTitle>
                         <DialogDescription>
-                            Adicione um cleaner ou funcionário. Senha padrão: 'mudar123'.
+                            Adicione um cleaner ou funcionário. Você define a senha e o acesso.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
@@ -86,6 +86,19 @@ export function CreateEmployeeModal() {
                             />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="password" className="text-right">
+                                Senha
+                            </Label>
+                            <Input
+                                id="password"
+                                name="password"
+                                type="password"
+                                placeholder="Defina a senha dela"
+                                className="col-span-3"
+                                required
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="phone" className="text-right">
                                 Telefone
                             </Label>
@@ -108,7 +121,7 @@ export function CreateEmployeeModal() {
                                     className="w-12 h-10 p-1 cursor-pointer"
                                     defaultValue="#10b981"
                                 />
-                                <span className="text-xs text-muted-foreground">Cor para visualização na agenda/mapa.</span>
+                                <span className="text-xs text-muted-foreground">Cor na agenda/mapa.</span>
                             </div>
                         </div>
                     </div>
