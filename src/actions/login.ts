@@ -26,7 +26,6 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
             redirect: false,
         });
 
-        // O redirecionamento real será tratado no cliente para permitir lógica baseada em role
         return { success: "Login realizado!" };
     } catch (error) {
         if (error instanceof AuthError) {

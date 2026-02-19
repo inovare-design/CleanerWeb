@@ -46,10 +46,8 @@ export default function LoginPage() {
                     } else {
                         // O Auth.js demora um pouco para atualizar a sessão no cliente 
                         // após o login no servidor com redirect: false.
-                        // Forçamos um refresh ou redirecionamento direto se já tivéssemos o user.
-                        // Como não temos o user aqui ainda de forma síncrona, 
-                        // vamos usar o window.location para forçar o middleware a reprocessar
-                        window.location.href = "/";
+                        // Usamos window.location para forçar o middleware a reprocessar e ir para o Dashboard.
+                        window.location.href = "/admin";
                     }
                 });
         });
