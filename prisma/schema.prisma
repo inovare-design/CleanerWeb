@@ -15,17 +15,18 @@ model Tenant {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   address          String?
-  phone            String?
-  email            String?
-  taxId            String? // CNPJ/CPF
-  bankName         String?
-  bankAgency       String?
   bankAccount      String?
-  idealId          String? // ID da conta IDEAL
-
+  bankAgency       String?
+  bankName         String?
+  email            String?
+  idealId          String?
+  phone            String?
+  taxId            String?
   appointments     Appointment[]
   customers        Customer[]
   employees        Employee[]
+  payments         EmployeePayment[]
+  feedbacks        Feedback[]
   schedulingConfig SchedulingConfig?
   services         Service[]
   users            User[]
@@ -72,14 +73,16 @@ model Customer {
 }
 
 model Employee {
-  id           String        @id @default(uuid())
-  userId       String        @unique
-  color        String?       @default("#000000")
+  id           String            @id @default(uuid())
+  userId       String            @unique
+  color        String?           @default("#000000")
   phone        String?
   tenantId     String
   appointments Appointment[]
-  tenant       Tenant        @relation(fields: [tenantId], references: [id])
-  user         User          @relation(fields: [userId], references: [id])
+  tenant       Tenant            @relation(fields: [tenantId], references: [id])
+  user         User              @relation(fields: [userId], references: [id])
+  payments     EmployeePayment[]
+  feedbacks    Feedback[]
 }
 
 model Service {
@@ -112,11 +115,13 @@ model Appointment {
   tenantId               String
   createdAt              DateTime            @default(now())
   updatedAt              DateTime            @updatedAt
+  tipPrice               Decimal             @default(0.00)
   customer               Customer            @relation(fields: [customerId], references: [id])
   employee               Employee?           @relation(fields: [employeeId], references: [id])
   invoice                Invoice?            @relation(fields: [invoiceId], references: [id])
   service                Service             @relation(fields: [serviceId], references: [id])
   tenant                 Tenant              @relation(fields: [tenantId], references: [id])
+  feedbacks              Feedback[]
 }
 
 model Invoice {
@@ -132,24 +137,64 @@ model Invoice {
   customer     Customer      @relation(fields: [customerId], references: [id])
 }
 
+model EmployeePayment {
+  id         String      @id @default(uuid())
+  employeeId String
+  amount     Decimal
+  type       PaymentType @default(SALARY)
+  date       DateTime    @default(now())
+  notes      String?
+  tenantId   String
+  employee   Employee    @relation(fields: [employeeId], references: [id])
+  tenant     Tenant      @relation(fields: [tenantId], references: [id])
+}
+
+model Feedback {
+  id            String       @id @default(uuid())
+  appointmentId String?
+  fromUserId    String
+  toEmployeeId  String
+  rating        Int          @default(5)
+  comment       String?
+  type          FeedbackType @default(CLIENT_TO_EMPLOYEE)
+  tenantId      String
+  createdAt     DateTime     @default(now())
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+  tenant        Tenant       @relation(fields: [tenantId], references: [id])
+  toEmployee    Employee     @relation(fields: [toEmployeeId], references: [id])
+}
+
 model SchedulingConfig {
-  id           String   @id @default(uuid())
-  availability String   @default("{}")
-  holidays     String   @default("[]")
-  rateNormal   Decimal  @default(50.00)
-  rateNormal2  Decimal  @default(75.00)
-  rateUrgent   Decimal  @default(100.00)
-  tenantId     String   @unique
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  id                   String   @id @default(uuid())
+  availability         String   @default("{}")
+  holidays             String   @default("[]")
+  rateNormal           Decimal  @default(50.00)
+  rateNormal2          Decimal  @default(75.00)
+  rateUrgent           Decimal  @default(100.00)
+  tenantId             String   @unique
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  allowTeammateRatings Boolean  @default(false)
+  enableTips           Boolean  @default(false)
+  tenant               Tenant   @relation(fields: [tenantId], references: [id])
+}
+
+enum PaymentType {
+  SALARY
+  TIP
+  BONUS
+}
+
+enum FeedbackType {
+  CLIENT_TO_EMPLOYEE
+  TEAMMATE_RATING
 }
 
 enum Role {
-  SUPER_ADMIN
   ADMIN
   CLEANER
   CLIENT
+  SUPER_ADMIN
 }
 
 enum AppointmentStatus {

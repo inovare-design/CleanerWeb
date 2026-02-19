@@ -6,11 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Mail, Phone, Clock, User, Settings, Info } from "lucide-react";
+import { Calendar, Mail, Phone, Clock, User, Settings, Info, DollarSign, MessageSquare, Star, TrendingUp } from "lucide-react";
 import { EmployeeProfileHeaderActions } from "@/components/employee-profile-header-actions";
 import { updateEmployeeProfile } from "@/actions/update-employee-profile";
+import { createEmployeePayment } from "@/actions/manage-payments";
+import { submitFeedback } from "@/actions/submit-feedback";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 async function getEmployeeData(id: string) {
     const employee = await db.user.findUnique({
@@ -18,6 +21,12 @@ async function getEmployeeData(id: string) {
         include: {
             employeeProfile: {
                 include: {
+                    payments: {
+                        orderBy: { date: 'desc' }
+                    },
+                    feedbacks: {
+                        orderBy: { createdAt: 'desc' }
+                    },
                     appointments: {
                         include: {
                             service: true,
@@ -51,10 +60,17 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
 
     const initials = employee.name
         ?.split(" ")
-        .map((n) => n[0])
+        .map((n: string) => n[0])
         .join("")
         .toUpperCase()
         .substring(0, 2);
+
+    const feedbacks = (employee.employeeProfile?.feedbacks || []) as any[];
+    const avgRating = feedbacks.length > 0
+        ? (feedbacks.reduce((acc: number, f: any) => acc + f.rating, 0) / feedbacks.length).toFixed(1)
+        : "N/A";
+
+    const totalPaid = (employee.employeeProfile?.payments || []).reduce((acc: number, p: any) => acc + Number(p.amount), 0);
 
     return (
         <div className="p-8 space-y-8 h-full flex flex-col overflow-y-auto">
@@ -67,7 +83,15 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
                         </AvatarFallback>
                     </Avatar>
                     <div>
-                        <h2 className="text-3xl font-bold tracking-tight">{employee.name}</h2>
+                        <div className="flex items-center gap-3">
+                            <h2 className="text-3xl font-bold tracking-tight">{employee.name}</h2>
+                            {feedbacks.length > 0 && (
+                                <Badge variant="outline" className="flex items-center gap-1 bg-yellow-50 text-yellow-700 border-yellow-200">
+                                    <Star className="w-3 h-3 fill-yellow-400" />
+                                    {avgRating}
+                                </Badge>
+                            )}
+                        </div>
                         <div className="flex items-center gap-2 text-muted-foreground mt-1">
                             <Mail className="w-4 h-4" />
                             <span>{employee.email}</span>
@@ -81,86 +105,315 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
 
             {/* Main Content */}
             <Tabs defaultValue="overview" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
+                <TabsList className="grid w-full grid-cols-5 lg:w-[600px]">
                     <TabsTrigger value="overview">Visão Geral</TabsTrigger>
                     <TabsTrigger value="agenda">Agenda</TabsTrigger>
+                    <TabsTrigger value="finance">Financeiro</TabsTrigger>
+                    <TabsTrigger value="feedback">Feedbacks</TabsTrigger>
                     <TabsTrigger value="settings">Configurações</TabsTrigger>
                 </TabsList>
 
                 {/* VISÃO GERAL */}
                 <TabsContent value="overview" className="space-y-4 mt-6">
-                    <div className="grid gap-4 md:grid-cols-2">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Informações de Contato</CardTitle>
-                                <Info className="h-4 w-4 text-muted-foreground" />
+                                <CardTitle className="text-sm font-medium">Contatos</CardTitle>
+                                <Phone className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
-                            <CardContent className="space-y-3 pt-4">
-                                <div className="flex items-center gap-2">
-                                    <Phone className="w-4 h-4 text-muted-foreground" />
-                                    <span>{employee.employeeProfile?.phone || "Não informado"}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Mail className="w-4 h-4 text-muted-foreground" />
-                                    <span>{employee.email}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: employee.employeeProfile?.color || "#10b981" }} />
-                                    <span>Cor na Agenda: {employee.employeeProfile?.color || "#10b981"}</span>
+                            <CardContent className="pt-2">
+                                <div className="text-sm font-medium">{employee.employeeProfile?.phone || "Não informado"}</div>
+                                <div className="text-xs text-muted-foreground">{employee.email}</div>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Avaliação Média</CardTitle>
+                                <Star className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent className="pt-2">
+                                <div className="text-2xl font-bold text-yellow-600">{avgRating}</div>
+                                <div className="text-xs text-muted-foreground">Baseado em {feedbacks.length} avaliações</div>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Serviços Totais</CardTitle>
+                                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent className="pt-2">
+                                <div className="text-2xl font-bold">{employee.employeeProfile?.appointments.length || 0}</div>
+                                <div className="text-xs text-muted-foreground">Em toda a trajetória</div>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Total Pago</CardTitle>
+                                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent className="pt-2">
+                                <div className="text-2xl font-bold text-green-600">R$ {totalPaid.toFixed(2)}</div>
+                                <div className="text-xs text-muted-foreground">Inclui salários e bônus</div>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-lg">Próximos Compromissos</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                {/* Simples lista rápida */}
+                                <div className="space-y-4">
+                                    {employee.employeeProfile?.appointments.slice(0, 3).map((apt: any) => (
+                                        <div key={apt.id} className="flex justify-between items-center text-sm">
+                                            <div>
+                                                <p className="font-medium">{apt.service.name}</p>
+                                                <p className="text-xs text-muted-foreground">{new Date(apt.startTime).toLocaleDateString()} - {apt.customer.user.name}</p>
+                                            </div>
+                                            <Badge variant="outline" className="text-[10px]">{apt.status}</Badge>
+                                        </div>
+                                    ))}
+                                    {(!employee.employeeProfile?.appointments || employee.employeeProfile.appointments.length === 0) && (
+                                        <p className="text-xs text-muted-foreground">Sem agendamentos futuros.</p>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
-
                         <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Resumo de Atividades</CardTitle>
-                                <Clock className="h-4 w-4 text-muted-foreground" />
+                            <CardHeader>
+                                <CardTitle className="text-lg">Últimos Feedbacks</CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-3 pt-4">
-                                <div className="flex flex-col">
-                                    <span className="text-muted-foreground text-xs">Total de Serviços</span>
-                                    <span className="text-2xl font-bold">{employee.employeeProfile?.appointments.length || 0}</span>
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="text-muted-foreground text-xs">Cadastrado em</span>
-                                    <span className="font-medium">{new Date(employee.createdAt).toLocaleDateString()}</span>
+                            <CardContent>
+                                <div className="space-y-4">
+                                    {feedbacks.slice(0, 2).map((f: any) => (
+                                        <div key={f.id} className="space-y-1">
+                                            <div className="flex items-center gap-1">
+                                                {[...Array(5)].map((_, i) => (
+                                                    <Star key={i} className={`w-3 h-3 ${i < f.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`} />
+                                                ))}
+                                            </div>
+                                            <p className="text-xs italic">"{f.comment}"</p>
+                                        </div>
+                                    ))}
+                                    {feedbacks.length === 0 && (
+                                        <p className="text-xs text-muted-foreground">Ainda sem avaliações.</p>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
                     </div>
                 </TabsContent>
 
-                {/* AGENDA */}
+                {/* AGENDA COMPLETA */}
                 <TabsContent value="agenda" className="mt-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Próximos Agendamentos</CardTitle>
-                            <CardDescription>Serviços atribuídos a este profissional.</CardDescription>
+                            <CardTitle>Histórico de Agenda</CardTitle>
+                            <CardDescription>Todos os serviços vinculados a este profissional.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-6">
-                                {(!employee.employeeProfile?.appointments || employee.employeeProfile.appointments.length === 0) ? (
-                                    <p className="text-center py-4 text-muted-foreground">Nenhum agendamento encontrado.</p>
-                                ) : (
-                                    employee.employeeProfile.appointments.map((apt) => (
-                                        <div key={apt.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
-                                            <div className="space-y-1">
-                                                <p className="font-medium">{apt.service.name}</p>
-                                                <p className="text-sm text-muted-foreground flex items-center gap-1">
-                                                    <Calendar className="w-3 h-3" />
-                                                    {new Date(apt.startTime).toLocaleDateString()} às {new Date(apt.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                </p>
-                                                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                                    <User className="w-3 h-3" />
-                                                    Cliente: {apt.customer.user.name}
-                                                </p>
-                                            </div>
+                                {employee.employeeProfile?.appointments.map((apt: any) => (
+                                    <div key={apt.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
+                                        <div className="space-y-1">
+                                            <p className="font-medium">{apt.service.name}</p>
+                                            <p className="text-sm text-muted-foreground flex items-center gap-1">
+                                                <Calendar className="w-3 h-3" />
+                                                {new Date(apt.startTime).toLocaleDateString()} às {new Date(apt.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                                <User className="w-3 h-3" />
+                                                Cliente: {apt.customer.user.name}
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
                                             <Badge variant={apt.status === 'COMPLETED' ? 'default' : 'secondary'}>
                                                 {apt.status}
                                             </Badge>
+                                            {Number(apt.tipPrice) > 0 && (
+                                                <p className="text-[10px] text-green-600 font-bold mt-1">+ Tip: R$ {Number(apt.tipPrice).toFixed(2)}</p>
+                                            )}
                                         </div>
-                                    ))
-                                )}
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* FINANCEIRO */}
+                <TabsContent value="finance" className="mt-6 space-y-6">
+                    <div className="grid gap-6 md:grid-cols-3">
+                        <Card className="md:col-span-1">
+                            <CardHeader>
+                                <CardTitle>Registrar Pagamento</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <form action={async (formData) => {
+                                    "use server";
+                                    await createEmployeePayment(formData);
+                                }} className="space-y-4">
+                                    <input type="hidden" name="employeeId" value={employee.id} />
+                                    <div className="space-y-2">
+                                        <Label>Valor (R$)</Label>
+                                        <Input name="amount" type="number" step="0.01" required />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Tipo</Label>
+                                        <Select name="type" defaultValue="SALARY">
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="SALARY">Salário</SelectItem>
+                                                <SelectItem value="BONUS">Bônus / Extra</SelectItem>
+                                                <SelectItem value="TIP">Tips (Repasse)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Observação</Label>
+                                        <Input name="notes" placeholder="Ex: Referente a Jan/2026" />
+                                    </div>
+                                    <Button type="submit" className="w-full">Registrar</Button>
+                                </form>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="md:col-span-2">
+                            <CardHeader>
+                                <CardTitle>Histórico de Pagamentos</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-4">
+                                    {employee.employeeProfile?.payments.map((p: any) => (
+                                        <div key={p.id} className="flex justify-between items-center border-b pb-3 last:border-0 last:pb-0">
+                                            <div className="space-y-0.5">
+                                                <p className="text-sm font-medium">{new Date(p.date).toLocaleDateString()}</p>
+                                                <Badge variant="outline" className="text-[10px]">{p.type}</Badge>
+                                                {p.notes && <p className="text-xs text-muted-foreground">{p.notes}</p>}
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="font-bold text-green-700">R$ {Number(p.amount).toFixed(2)}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {employee.employeeProfile?.payments.length === 0 && (
+                                        <p className="text-center py-6 text-muted-foreground text-sm">Nenhum pagamento registrado.</p>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="feedback" className="mt-6 space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Registrar Nova Avaliação</CardTitle>
+                            <CardDescription>Adicione um feedback manual de um cliente ou uma avaliação interna da equipe.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <form action={async (formData) => {
+                                "use server";
+                                await submitFeedback(formData);
+                            }} className="grid md:grid-cols-2 gap-4 items-end">
+                                <input type="hidden" name="toEmployeeId" value={employee.id} />
+                                <div className="space-y-2">
+                                    <Label>Tipo de Avaliação</Label>
+                                    <Select name="type" defaultValue="CLIENT_TO_EMPLOYEE">
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="CLIENT_TO_EMPLOYEE">Cliente para Funcionário</SelectItem>
+                                            <SelectItem value="TEAMMATE_RATING">Equipe para Funcionário (Interno)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Nota (1 a 5 Estrelas)</Label>
+                                    <Select name="rating" defaultValue="5">
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="5">5 Estrelas - Excelente</SelectItem>
+                                            <SelectItem value="4">4 Estrelas - Bom</SelectItem>
+                                            <SelectItem value="3">3 Estrelas - Regular</SelectItem>
+                                            <SelectItem value="2">2 Estrelas - Ruim</SelectItem>
+                                            <SelectItem value="1">1 Estrela - Insatisfeito</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="md:col-span-2 space-y-2">
+                                    <Label>Comentário / Observação</Label>
+                                    <Input name="comment" placeholder="Descreva brevemente o feedback..." required />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <Button type="submit" className="w-full md:w-auto">Registrar Avaliação</Button>
+                                </div>
+                            </form>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Histórico de Avaliações & Feedbacks</CardTitle>
+                            <CardDescription>O que clientes e equipe dizem sobre {employee.name}.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid gap-6 md:grid-cols-2">
+                                <div className="space-y-4 border-r pr-6">
+                                    <h3 className="font-semibold text-sm flex items-center gap-2">
+                                        <User className="w-4 h-4" /> Avaliações de Clientes
+                                    </h3>
+                                    {feedbacks.filter((f: any) => f.type === 'CLIENT_TO_EMPLOYEE').map((f: any) => (
+                                        <Card key={f.id} className="bg-muted/30">
+                                            <CardContent className="p-4 space-y-2">
+                                                <div className="flex justify-between items-center">
+                                                    <div className="flex gap-1">
+                                                        {[...Array(5)].map((_, i) => (
+                                                            <Star key={i} className={`w-3 h-3 ${i < f.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`} />
+                                                        ))}
+                                                    </div>
+                                                    <span className="text-[10px] text-muted-foreground">{new Date(f.createdAt).toLocaleDateString()}</span>
+                                                </div>
+                                                <p className="text-sm italic">"{f.comment}"</p>
+                                            </CardContent>
+                                        </Card>
+                                    ))}
+                                    {feedbacks.filter((f: any) => f.type === 'CLIENT_TO_EMPLOYEE').length === 0 && (
+                                        <p className="text-xs text-muted-foreground text-center py-4">Ainda sem avaliações de clientes.</p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-4">
+                                    <h3 className="font-semibold text-sm flex items-center gap-2">
+                                        <MessageSquare className="w-4 h-4" /> Avaliações da Equipe
+                                    </h3>
+                                    {feedbacks.filter((f: any) => f.type === 'TEAMMATE_RATING').map((f: any) => (
+                                        <Card key={f.id} className="bg-blue-50/30 border-blue-100">
+                                            <CardContent className="p-4 space-y-2">
+                                                <div className="flex justify-between items-center">
+                                                    <div className="flex gap-1">
+                                                        {[...Array(5)].map((_, i) => (
+                                                            <Star key={i} className={`w-3 h-3 ${i < f.rating ? "fill-blue-400 text-blue-400" : "text-gray-300"}`} />
+                                                        ))}
+                                                    </div>
+                                                    <span className="text-[10px] text-muted-foreground">{new Date(f.createdAt).toLocaleDateString()}</span>
+                                                </div>
+                                                <p className="text-sm font-medium">Avaliação Interna</p>
+                                                <p className="text-sm italic">"{f.comment}"</p>
+                                            </CardContent>
+                                        </Card>
+                                    ))}
+                                    {feedbacks.filter((f: any) => f.type === 'TEAMMATE_RATING').length === 0 && (
+                                        <p className="text-xs text-muted-foreground text-center py-4">Ainda sem avaliações internas.</p>
+                                    )}
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
@@ -170,21 +423,24 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
                 <TabsContent value="settings" className="mt-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Editar Perfil</CardTitle>
-                            <CardDescription>Atualize os detalhes profissionais do funcionário.</CardDescription>
+                            <CardTitle>Editar Perfil Profissional</CardTitle>
+                            <CardDescription>Atualize os detalhes de contato e visualização.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <form action={updateEmployeeProfile} className="space-y-4 max-w-md">
+                            <form action={async (formData) => {
+                                "use server";
+                                await updateEmployeeProfile(formData);
+                            }} className="space-y-4 max-w-md">
                                 <input type="hidden" name="userId" value={employee.id} />
                                 <div className="space-y-2">
-                                    <Label htmlFor="phone">Telefone</Label>
+                                    <Label htmlFor="phone">Telefone de Contato</Label>
                                     <Input id="phone" name="phone" defaultValue={employee.employeeProfile?.phone || ""} />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="color">Cor da Agenda</Label>
+                                    <Label htmlFor="color">Cor Identificadora (Calendário)</Label>
                                     <div className="flex items-center gap-3">
                                         <Input id="color" name="color" type="color" className="w-12 h-10 p-1 cursor-pointer" defaultValue={employee.employeeProfile?.color || "#10b981"} />
-                                        <span className="text-sm text-muted-foreground">Esta cor representará o funcionário no calendário.</span>
+                                        <span className="text-sm text-muted-foreground">Esta cor facilita a identificação rápida na agenda geral.</span>
                                     </div>
                                 </div>
                                 <Button type="submit">Salvar Alterações</Button>

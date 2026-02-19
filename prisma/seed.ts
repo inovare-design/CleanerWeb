@@ -2,12 +2,16 @@ const { PrismaClient } = require('@prisma/client')
 const bcrypt = require('bcryptjs')
 const prisma = new PrismaClient()
 
+const MAIN_TENANT_ID = 'c0a80101-0000-0000-0000-000000000000'
+const ADMIN_USER_ID = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+
 async function main() {
     // 1. Criar Tenant (Empresa de Limpeza)
     const tenant = await prisma.tenant.upsert({
         where: { slug: 'cleanfast' },
         update: {},
         create: {
+            id: MAIN_TENANT_ID,
             name: 'CleanFast Services',
             slug: 'cleanfast',
         },
@@ -18,8 +22,13 @@ async function main() {
     // 2. Criar Usuário Admin (SUPER_ADMIN)
     const admin = await prisma.user.upsert({
         where: { email: 'admin@cleanfast.com' },
-        update: { role: 'SUPER_ADMIN' },
+        update: {
+            id: ADMIN_USER_ID,
+            role: 'SUPER_ADMIN',
+            tenantId: tenant.id
+        },
         create: {
+            id: ADMIN_USER_ID,
             email: 'admin@cleanfast.com',
             name: 'Admin User',
             password: await bcrypt.hash('password123', 10),
