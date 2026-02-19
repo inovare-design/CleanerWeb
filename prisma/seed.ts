@@ -6,34 +6,40 @@ const MAIN_TENANT_ID = 'c0a80101-0000-0000-0000-000000000000'
 const ADMIN_USER_ID = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
 
 async function main() {
+    console.log('Iniciando limpeza do banco de dados para IDs estáticos...')
+    // Simples wipe em ordem para evitar FK errors
+    await prisma.feedback.deleteMany({})
+    await prisma.employeePayment.deleteMany({})
+    await prisma.appointment.deleteMany({})
+    await prisma.invoice.deleteMany({})
+    await prisma.schedulingConfig.deleteMany({})
+    await prisma.service.deleteMany({})
+    await prisma.customer.deleteMany({})
+    await prisma.employee.deleteMany({})
+    await prisma.user.deleteMany({})
+    await prisma.tenant.deleteMany({})
+    console.log('Limpeza concluída.')
+
     // 1. Criar Tenant (Empresa de Limpeza)
-    const tenant = await prisma.tenant.upsert({
-        where: { slug: 'cleanfast' },
-        update: {},
-        create: {
+    const tenant = await prisma.tenant.create({
+        data: {
             id: MAIN_TENANT_ID,
             name: 'CleanFast Services',
             slug: 'cleanfast',
         },
     })
 
-    console.log('Tenant verificado/criado:', tenant.name)
+    console.log('Tenant criado:', tenant.name)
 
     // 2. Criar Usuário Admin (SUPER_ADMIN)
-    const admin = await prisma.user.upsert({
-        where: { email: 'admin@cleanfast.com' },
-        update: {
-            id: ADMIN_USER_ID,
-            role: 'SUPER_ADMIN',
-            tenantId: tenant.id
-        },
-        create: {
+    const admin = await prisma.user.create({
+        data: {
             id: ADMIN_USER_ID,
             email: 'admin@cleanfast.com',
             name: 'Admin User',
             password: await bcrypt.hash('password123', 10),
             role: 'SUPER_ADMIN',
-            tenantId: tenant.id,
+            tenantId: MAIN_TENANT_ID,
         },
     })
     console.log('Admin verificado/atualizado para SUPER_ADMIN:', admin.email)
