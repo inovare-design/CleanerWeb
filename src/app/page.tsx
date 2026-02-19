@@ -13,11 +13,10 @@ export default function Home() {
       <div className="z-10 max-w-5xl w-full text-center space-y-8">
         <div className="space-y-4">
           <h1 className="text-5xl font-extrabold tracking-tight lg:text-7xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
-            CleanRoute SaaS
+            CleanRoute SaaS v2
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            A plataforma definitiva para gestão de empresas de limpeza.
-            Controle total para Admins, agilidade para Cleaners e transparência para Clientes.
+            Sistema de Gestão - Versão Atualizada
           </p>
         </div>
 
@@ -33,11 +32,11 @@ export default function Home() {
                 <li className="flex items-center gap-2"><MapPin className="w-4 h-4" /> Live Tracking</li>
                 <li className="flex items-center gap-2"><Calculator className="w-4 h-4" /> Orçamento Instantâneo</li>
               </ul>
-              <Link href="/login">
+              <a href="/login">
                 <Button className="w-full group">
                   Acessar App <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                 </Button>
-              </Link>
+              </a>
             </CardContent>
           </Card>
 
@@ -52,11 +51,11 @@ export default function Home() {
                 <li className="flex items-center gap-2"><Users className="w-4 h-4" /> Gestão de Equipes</li>
                 <li className="flex items-center gap-2"><Calculator className="w-4 h-4" /> Controle Financeiro</li>
               </ul>
-              <Link href="/login">
+              <a href="/login">
                 <Button variant="default" className="w-full group">
                   Acessar Dashboard
                 </Button>
-              </Link>
+              </a>
             </CardContent>
           </Card>
 
@@ -71,11 +70,11 @@ export default function Home() {
                 <li className="flex items-center gap-2"><ArrowRight className="w-4 h-4" /> Offline First</li>
                 <li className="flex items-center gap-2"><MapPin className="w-4 h-4" /> Rota Inteligente</li>
               </ul>
-              <Link href="/login">
+              <a href="/login">
                 <Button variant="outline" className="w-full group">
                   Acessar Rota <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                 </Button>
-              </Link>
+              </a>
             </CardContent>
           </Card>
         </div>
