@@ -9,6 +9,14 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, Mail, MapPin, Phone, User, Clock, CheckCircle, AlertCircle, Home, Key } from "lucide-react";
 import { ClientProfileHeaderActions } from "@/components/client-profile-header-actions";
 import { ClientStatusBadge } from "@/components/client-status-badge";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
 
 async function getClientData(id: string) {
     const client = await db.user.findUnique({
@@ -16,6 +24,9 @@ async function getClientData(id: string) {
         include: {
             customerProfile: {
                 include: {
+                    invoices: {
+                        orderBy: { createdAt: 'desc' }
+                    },
                     appointments: {
                         include: {
                             service: true,
@@ -47,9 +58,43 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
         return <div>Cliente não encontrado</div>;
     }
 
+    const customer = client.customerProfile;
+
+    // Consolidar histórico financeiro
+    const financialHistory = [
+        ...(customer?.invoices || []).map((inv: any) => ({
+            id: inv.id,
+            date: inv.paidAt || inv.createdAt,
+            type: 'PAYMENT',
+            amount: Number(inv.amount),
+            status: inv.status,
+            description: `Fatura #${inv.id.substring(0, 8)}`,
+        })),
+        ...(customer?.appointments || [])
+            .filter((apt: any) => Number(apt.tipPrice) > 0)
+            .map((apt: any) => ({
+                id: `tip-${apt.id}`,
+                date: apt.actualEndTime || apt.startTime,
+                type: 'TIP',
+                amount: Number(apt.tipPrice),
+                status: 'PAID',
+                description: `Gorjeta - Serviço: ${apt.service.name}`,
+            })),
+        ...(customer?.appointments || [])
+            .filter((apt: any) => apt.status === 'CANCELLED')
+            .map((apt: any) => ({
+                id: `refund-${apt.id}`,
+                date: apt.updatedAt,
+                type: 'REFUND',
+                amount: -Number(apt.price), // Valor negativo para estorno
+                status: 'CANCELLED',
+                description: `Estorno (Cancelamento) - ${apt.service.name}`,
+            }))
+    ].sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
     const initials = client.name
         ?.split(" ")
-        .map((n) => n[0])
+        .map((n: string) => n[0])
         .join("")
         .toUpperCase()
         .substring(0, 2);
@@ -85,10 +130,10 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
 
             {/* Main Content */}
             <Tabs defaultValue="overview" className="w-full">
-                <TabsList className="grid w-full grid-cols-4 lg:w-[400px]">
+                <TabsList className="grid w-full grid-cols-4 lg:w-[450px]">
                     <TabsTrigger value="overview">Visão Geral</TabsTrigger>
                     <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
-                    <TabsTrigger value="history">Histórico</TabsTrigger>
+                    <TabsTrigger value="history">Histórico Financeiro</TabsTrigger>
                     <TabsTrigger value="notes">Notas</TabsTrigger>
                 </TabsList>
 
@@ -177,7 +222,12 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
                                     <div className="text-2xl font-bold">{client.customerProfile?.appointments?.length || 0}</div>
                                     <div className="text-xs text-muted-foreground">Total Agendamentos</div>
                                 </div>
-                                {/* Adicionar mais stats futuramente */}
+                                <div className="text-center">
+                                    <div className="text-2xl font-bold text-emerald-600">
+                                        R$ {financialHistory.filter(h => h.type !== 'REFUND').reduce((acc, h) => acc + h.amount, 0).toFixed(2)}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">Total Gasto</div>
+                                </div>
                             </CardContent>
                         </Card>
                     </div>
@@ -199,7 +249,7 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
                                         Nenhum agendamento encontrado.
                                     </div>
                                 ) : (
-                                    client.customerProfile?.appointments.map((apt) => (
+                                    client.customerProfile?.appointments.map((apt: any) => (
                                         <div key={apt.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
                                             <div className="space-y-1">
                                                 <p className="text-sm font-medium leading-none flex items-center gap-2">
@@ -252,15 +302,63 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
                     </Card>
                 </TabsContent>
 
-                {/* HISTÓRICO / SERVIÇOS (Placeholder) */}
+                {/* HISTÓRICO FINANCEIRO */}
                 <TabsContent value="history" className="mt-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Histórico de Serviços</CardTitle>
-                            <CardDescription>Resumo dos tipos de serviços consumidos.</CardDescription>
+                            <CardTitle>Histórico Financeiro Detalhado</CardTitle>
+                            <CardDescription>Registro de pagamentos, gorjetas e possíveis estornos.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-muted-foreground text-sm">Em desenvolvimento...</p>
+                            <div className="rounded-md border">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Data</TableHead>
+                                            <TableHead>Tipo</TableHead>
+                                            <TableHead>Descrição</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead className="text-right">Valor</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {financialHistory.length === 0 ? (
+                                            <TableRow>
+                                                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                                                    Nenhum registro financeiro encontrado.
+                                                </TableCell>
+                                            </TableRow>
+                                        ) : (
+                                            financialHistory.map((item) => (
+                                                <TableRow key={item.id}>
+                                                    <TableCell className="text-sm">
+                                                        {new Date(item.date).toLocaleDateString()}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Badge variant={
+                                                            item.type === 'PAYMENT' ? 'default' :
+                                                                item.type === 'TIP' ? 'secondary' : 'destructive'
+                                                        } className="text-[10px]">
+                                                            {item.type === 'PAYMENT' ? 'PAGAMENTO' :
+                                                                item.type === 'TIP' ? 'GORJETA' : 'ESTORNO'}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell className="text-sm font-medium">
+                                                        {item.description}
+                                                    </TableCell>
+                                                    <TableCell className="text-xs uppercase font-bold text-muted-foreground">
+                                                        {item.status}
+                                                    </TableCell>
+                                                    <TableCell className={`text-right font-bold ${item.amount < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                                                        R$ {Math.abs(item.amount).toFixed(2)}
+                                                        {item.amount < 0 && ' (-)'}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
