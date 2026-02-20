@@ -130,11 +130,11 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
 
             {/* Main Content */}
             <Tabs defaultValue="overview" className="w-full">
-                <TabsList className="grid w-full grid-cols-4 lg:w-[450px]">
-                    <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-                    <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
-                    <TabsTrigger value="history">Histórico Financeiro</TabsTrigger>
-                    <TabsTrigger value="notes">Notas</TabsTrigger>
+                <TabsList className="flex flex-wrap w-full md:w-auto h-auto bg-muted/50 p-1 rounded-lg gap-1">
+                    <TabsTrigger value="overview" className="flex-1 md:flex-none">Visão Geral</TabsTrigger>
+                    <TabsTrigger value="appointments" className="flex-1 md:flex-none">Agendamentos</TabsTrigger>
+                    <TabsTrigger value="history" className="flex-1 md:flex-none">Histórico Financeiro</TabsTrigger>
+                    <TabsTrigger value="notes" className="flex-1 md:flex-none">Notas</TabsTrigger>
                 </TabsList>
 
                 {/* VISÃO GERAL */}
