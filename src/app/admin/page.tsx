@@ -109,7 +109,7 @@ async function getDashboardData(tenantId: string) {
                     startTime: { gte: startOfMonth(monthDate), lte: endOfMonth(monthDate) },
                 },
                 _sum: { price: true },
-            }).then((rev: { _sum: { price: number | null } }) => ({
+            }).then((rev: { _sum: { price: any } }) => ({
                 label: format(monthDate, "MMM", { locale: ptBR }),
                 value: Number(rev._sum.price || 0),
             }))
