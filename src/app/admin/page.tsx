@@ -57,7 +57,12 @@ async function getDashboardData(tenantId: string) {
             where: { tenantId, active: true },
         }),
         db.customer.count({
-            where: { tenantId, createdAt: { gte: sevenDaysAgo } },
+            where: {
+                tenantId,
+                user: {
+                    createdAt: { gte: sevenDaysAgo }
+                }
+            },
         }),
         db.employee.count({
             where: { tenantId },
