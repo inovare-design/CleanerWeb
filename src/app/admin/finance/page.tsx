@@ -16,17 +16,25 @@ async function getFinanceData(tenantId: string) {
     ] = await Promise.all([
         // Receita Realizada (Faturas Pagas)
         db.invoice.aggregate({
-            where: { tenantId, status: "PAID" },
+            where: {
+                customer: { tenantId },
+                status: "PAID"
+            },
             _sum: { amount: true }
         }),
         // Receita Prevista (Faturas Abertas + Agendamentos Confirmados sem fatura)
         db.invoice.aggregate({
-            where: { tenantId, status: "OPEN" },
+            where: {
+                customer: { tenantId },
+                status: "OPEN"
+            },
             _sum: { amount: true }
         }),
         // Todas as faturas para a lista
         db.invoice.findMany({
-            where: { tenantId },
+            where: {
+                customer: { tenantId }
+            },
             include: {
                 customer: { include: { user: true } },
                 appointments: true
