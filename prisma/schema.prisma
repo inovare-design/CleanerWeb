@@ -119,6 +119,8 @@ model Appointment {
   warnings               String?
   priorityAreas          String?
   customDuration         Int?
+  cleanerConfirmationDate DateTime?
+  proofImages            String[]            @default([])
   customer               Customer            @relation(fields: [customerId], references: [id])
   employee               Employee?           @relation(fields: [employeeId], references: [id])
   invoice                Invoice?            @relation(fields: [invoiceId], references: [id])
@@ -204,6 +206,7 @@ enum AppointmentStatus {
   PENDING
   CONFIRMED
   IN_PROGRESS
+  AWAITING_CONFIRMATION
   COMPLETED
   CANCELLED
 }

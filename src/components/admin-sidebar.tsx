@@ -19,6 +19,7 @@ import {
 import { signOut } from "next-auth/react";
 import { Button } from "./ui/button";
 import { ExtendedUser } from "../../next-auth";
+import { APP_VERSION } from "@/lib/version";
 
 const routes = [
     {
@@ -148,6 +149,12 @@ export const AdminSidebar = ({ user }: AdminSidebarProps) => {
                     <LogOut className="h-4 w-4 mr-2" />
                     Sair do Sistema
                 </Button>
+
+                <div className="mt-4 pt-4 border-t border-[#1f2937] text-center">
+                    <span className="text-[10px] font-bold text-gray-500 tracking-widest uppercase">
+                        {APP_VERSION}
+                    </span>
+                </div>
             </div>
         </div>
     );

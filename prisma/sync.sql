@@ -1,0 +1,3 @@
+ALTER TABLE "Appointment" ADD COLUMN IF NOT EXISTS "customDuration" INTEGER;
+ALTER TABLE "Appointment" ADD COLUMN IF NOT EXISTS "priorityAreas" TEXT;
+ALTER TABLE "Appointment" ADD COLUMN IF NOT EXISTS "warnings" TEXT;

@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/db";
-import { DollarSign, TrendingUp, CreditCard, Receipt, Repeat } from "lucide-react";
+import { DollarSign, TrendingUp, CreditCard, Receipt, Repeat, Clock } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InvoiceList } from "@/components/finance/invoice-list";
 import { RecurringBillingManager } from "@/components/finance/recurring-manager";
@@ -11,34 +11,39 @@ async function getFinanceData(tenantId: string) {
     const [
         completedStats,
         forecastStats,
+        awaitingStats,
+        provisionedStats,
         allInvoices,
         recentAppointments
     ] = await Promise.all([
         // Receita Realizada (Faturas Pagas)
         db.invoice.aggregate({
-            where: {
-                customer: { tenantId },
-                status: "PAID"
-            },
+            where: { customer: { tenantId }, status: "PAID" },
             _sum: { amount: true }
         }),
-        // Receita Prevista (Faturas Abertas + Agendamentos Confirmados sem fatura)
+        // Receita Prevista (Faturas Abertas)
         db.invoice.aggregate({
-            where: {
-                customer: { tenantId },
-                status: "OPEN"
-            },
+            where: { customer: { tenantId }, status: "OPEN" },
             _sum: { amount: true }
+        }),
+        // Receita A Aprovar (Status AWAITING_CONFIRMATION)
+        db.appointment.aggregate({
+            where: { tenantId, status: "AWAITING_CONFIRMATION" },
+            _sum: { price: true }
+        }),
+        // Receita Provisionada (COMPLETED sem Invoice - para Recorrentes)
+        db.appointment.aggregate({
+            where: {
+                tenantId,
+                status: "COMPLETED",
+                invoiceId: null
+            },
+            _sum: { price: true }
         }),
         // Todas as faturas para a lista
         db.invoice.findMany({
-            where: {
-                customer: { tenantId }
-            },
-            include: {
-                customer: { include: { user: true } },
-                appointments: true
-            },
+            where: { customer: { tenantId } },
+            include: { customer: { include: { user: true } }, appointments: true },
             orderBy: { createdAt: "desc" }
         }),
         // Serviços concluídos recentemente
@@ -50,12 +55,11 @@ async function getFinanceData(tenantId: string) {
         })
     ]);
 
-    const totalRevenue = Number(completedStats._sum.amount || 0);
-    const pendingRevenue = Number(forecastStats._sum.amount || 0);
-
     return {
-        totalRevenue,
-        pendingRevenue,
+        totalRevenue: Number(completedStats._sum.amount || 0),
+        pendingRevenue: Number(forecastStats._sum.amount || 0),
+        awaitingRevenue: Number(awaitingStats._sum.price || 0),
+        provisionedRevenue: Number(provisionedStats._sum.price || 0),
         invoices: allInvoices,
         recentTransactions: recentAppointments
     };
@@ -68,7 +72,7 @@ export default async function FinancePage() {
     const tenantId = session.user.tenantId;
 
     try {
-        const { totalRevenue, pendingRevenue, invoices, recentTransactions } = await getFinanceData(tenantId);
+        const { totalRevenue, pendingRevenue, awaitingRevenue, provisionedRevenue, invoices, recentTransactions } = await getFinanceData(tenantId);
 
         return (
             <div className="p-8 space-y-8 animate-in fade-in duration-500">
@@ -79,43 +83,56 @@ export default async function FinancePage() {
                     </p>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-3">
-                    <Card className="bg-emerald-50/50 border-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-900/30">
+                <div className="grid gap-4 md:grid-cols-4">
+                    <Card className="bg-emerald-50/50 border-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-900/30 ring-1 ring-emerald-500/10">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-xs font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Receita Total</CardTitle>
+                            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Total Recebido</CardTitle>
                             <DollarSign className="h-4 w-4 text-emerald-600" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-black text-emerald-700 dark:text-emerald-300">
+                            <div className="text-2xl font-black text-emerald-700 dark:text-emerald-300">
                                 R$ {totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                             </div>
-                            <p className="text-[10px] text-emerald-600/70 font-bold mt-1 uppercase">Total em faturas liquidadas</p>
+                            <p className="text-[10px] text-emerald-600/70 font-bold mt-1 uppercase">Faturas Pagas (IDEAL)</p>
                         </CardContent>
                     </Card>
 
-                    <Card className="bg-blue-50/50 border-blue-100 dark:bg-blue-950/20 dark:border-blue-900/30">
+                    <Card className="bg-blue-50/50 border-blue-100 dark:bg-blue-950/20 dark:border-blue-900/30 ring-1 ring-blue-500/10">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-xs font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">A Receber</CardTitle>
+                            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">Faturas em Aberto</CardTitle>
                             <TrendingUp className="h-4 w-4 text-blue-600" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-black text-blue-700 dark:text-blue-300">
+                            <div className="text-2xl font-black text-blue-700 dark:text-blue-300">
                                 R$ {pendingRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                             </div>
-                            <p className="text-[10px] text-blue-600/70 font-bold mt-1 uppercase">Faturas em aberto</p>
+                            <p className="text-[10px] text-blue-600/70 font-bold mt-1 uppercase">A vencer / Vencidas</p>
                         </CardContent>
                     </Card>
 
-                    <Card className="bg-zinc-50 border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800">
+                    <Card className="bg-amber-50/50 border-amber-100 dark:bg-amber-950/20 dark:border-amber-900/30 ring-1 ring-amber-500/10">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Volume Mensal</CardTitle>
-                            <CreditCard className="h-4 w-4 text-muted-foreground" />
+                            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">Aprovação Pendente</CardTitle>
+                            <Clock className="h-4 w-4 text-amber-600" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-black text-zinc-900 dark:text-zinc-100">
-                                {invoices.length}
+                            <div className="text-2xl font-black text-amber-700 dark:text-amber-300">
+                                R$ {awaitingRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                             </div>
-                            <p className="text-[10px] text-muted-foreground font-bold mt-1 uppercase">Total de faturas geradas</p>
+                            <p className="text-[10px] text-amber-600/70 font-bold mt-1 uppercase">Janela de 3h p/ cliente</p>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="bg-zinc-50 border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 shadow-sm ring-1 ring-zinc-500/10">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400">Serviços Provisionados</CardTitle>
+                            <Repeat className="h-4 w-4 text-zinc-600" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-black text-zinc-900 dark:text-zinc-100">
+                                R$ {provisionedRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </div>
+                            <p className="text-[10px] text-zinc-600/70 font-bold mt-1 uppercase">Recorrentes confirmados</p>
                         </CardContent>
                     </Card>
                 </div>
