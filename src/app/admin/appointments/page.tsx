@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import {
     Table,
     TableBody,
@@ -28,7 +29,20 @@ import { AppointmentActions } from "@/components/appointment-actions";
 // Tipos auxiliares
 import { AppointmentStatus } from "@prisma/client";
 
-async function getData(query: string, tenantId: string) {
+async function getData(query: string, tenantId: string, sort: string = 'date', order: 'asc' | 'desc' = 'desc') {
+    // Definir ordenação do Prisma
+    let orderBy: any = { startTime: order };
+
+    if (sort === 'customer') {
+        orderBy = { customer: { user: { name: order } } };
+    } else if (sort === 'service') {
+        orderBy = { service: { name: order } };
+    } else if (sort === 'employee') {
+        orderBy = { employee: { user: { name: order } } };
+    } else if (sort === 'status') {
+        orderBy = { status: order };
+    }
+
     // Buscar Agendamentos
     const appointments = await db.appointment.findMany({
         where: {
@@ -43,9 +57,7 @@ async function getData(query: string, tenantId: string) {
             employee: { include: { user: true } },
             service: true
         },
-        orderBy: {
-            startTime: 'desc'
-        }
+        orderBy
     });
 
     // Formatar appointments para remover Decimais (evitar erro de serialização no Client Component)
@@ -128,6 +140,8 @@ const getStatusBadge = (status: AppointmentStatus) => {
 export default async function AppointmentsPage(props: {
     searchParams?: Promise<{
         q?: string;
+        sort?: string;
+        order?: 'asc' | 'desc';
     }>;
 }) {
     const session = await auth();
@@ -135,13 +149,29 @@ export default async function AppointmentsPage(props: {
 
     const searchParams = await props.searchParams;
     const query = searchParams?.q || "";
+    const sort = searchParams?.sort || "date";
+    const order = searchParams?.order || "desc";
 
     // Garantir tenantId (fallback ou erro se não tiver)
     const tenantId = session.user.tenantId;
     if (!tenantId) return <div>Erro: Usuário sem tenant vinculado.</div>;
 
     try {
-        const { appointments, clients, services, employees, schedulingConfig } = await getData(query, tenantId);
+        const { appointments, clients, services, employees, schedulingConfig } = await getData(query, tenantId, sort, order);
+
+        const getSortLink = (column: string) => {
+            const nextOrder = (sort === column && order === 'asc') ? 'desc' : 'asc';
+            const params = new URLSearchParams();
+            if (query) params.set('q', query);
+            params.set('sort', column);
+            params.set('order', nextOrder);
+            return `?${params.toString()}`;
+        };
+
+        const SortIndicator = ({ column }: { column: string }) => {
+            if (sort !== column) return <Search className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-50 inline" />;
+            return order === 'asc' ? <Clock className="w-3 h-3 ml-1 inline text-blue-600" /> : <Clock className="w-3 h-3 ml-1 inline text-blue-600 rotate-180 transition-transform" />;
+        };
 
         return (
             <div className="p-8 space-y-8 h-full flex flex-col">
@@ -190,6 +220,8 @@ export default async function AppointmentsPage(props: {
                                     className="pl-9 w-[250px]"
                                     placeholder="Buscar cliente ou serviço..."
                                 />
+                                {sort !== 'date' && <input type="hidden" name="sort" value={sort} />}
+                                {order !== 'desc' && <input type="hidden" name="order" value={order} />}
                             </form>
                         </div>
                     </CardHeader>
@@ -197,11 +229,31 @@ export default async function AppointmentsPage(props: {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Data / Hora</TableHead>
-                                    <TableHead>Cliente</TableHead>
-                                    <TableHead>Serviço</TableHead>
-                                    <TableHead>Funcionário</TableHead>
-                                    <TableHead>Status</TableHead>
+                                    <TableHead className="group cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
+                                        <Link href={getSortLink('date')} className="flex items-center w-full h-full py-3">
+                                            Data / Hora <SortIndicator column="date" />
+                                        </Link>
+                                    </TableHead>
+                                    <TableHead className="group cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
+                                        <Link href={getSortLink('customer')} className="flex items-center w-full h-full py-3">
+                                            Cliente <SortIndicator column="customer" />
+                                        </Link>
+                                    </TableHead>
+                                    <TableHead className="group cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
+                                        <Link href={getSortLink('service')} className="flex items-center w-full h-full py-3">
+                                            Serviço <SortIndicator column="service" />
+                                        </Link>
+                                    </TableHead>
+                                    <TableHead className="group cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
+                                        <Link href={getSortLink('employee')} className="flex items-center w-full h-full py-3">
+                                            Funcionário <SortIndicator column="employee" />
+                                        </Link>
+                                    </TableHead>
+                                    <TableHead className="group cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
+                                        <Link href={getSortLink('status')} className="flex items-center w-full h-full py-3">
+                                            Status <SortIndicator column="status" />
+                                        </Link>
+                                    </TableHead>
                                     <TableHead className="w-[80px]"></TableHead>
                                 </TableRow>
                             </TableHeader>
