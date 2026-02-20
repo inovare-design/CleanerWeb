@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, MoreHorizontal, Mail, MapPin, Phone } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
     DropdownMenu,
@@ -55,6 +56,7 @@ type ClientWithProfile = {
     customerProfile: {
         phone: string | null;
         address: string | null;
+        frequency: string;
     } | null;
 };
 
@@ -115,6 +117,7 @@ export default async function CustomersPage(props: {
                             <TableRow>
                                 <TableHead>Nome / Email</TableHead>
                                 <TableHead>Telefone</TableHead>
+                                <TableHead>Frequência</TableHead>
                                 <TableHead>Endereço Principal</TableHead>
                                 <TableHead>Data Cadastro</TableHead>
                                 <TableHead className="w-[80px]"></TableHead>
@@ -138,6 +141,12 @@ export default async function CustomersPage(props: {
                                             <Phone className="w-3 h-3 mr-2 text-muted-foreground" />
                                             {client.customerProfile?.phone || "N/A"}
                                         </span>
+                                    </TableCell>
+                                    <TableCell>
+                                        {client.customerProfile?.frequency === 'WEEKLY' && <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">Semanal</Badge>}
+                                        {client.customerProfile?.frequency === 'BIWEEKLY' && <Badge className="bg-indigo-100 text-indigo-700 hover:bg-indigo-100">Quinzenal</Badge>}
+                                        {client.customerProfile?.frequency === 'MONTHLY' && <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100">Mensal</Badge>}
+                                        {(client.customerProfile?.frequency === 'ONE_TIME' || !client.customerProfile?.frequency) && <Badge variant="outline" className="text-gray-500">Avulso</Badge>}
                                     </TableCell>
                                     <TableCell>
                                         <span className="flex items-center text-sm max-w-[200px] truncate" title={client.customerProfile?.address || ""}>

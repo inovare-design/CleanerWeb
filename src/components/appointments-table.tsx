@@ -38,6 +38,7 @@ import {
     CardTitle,
 } from "@/components/ui/card";
 import { AppointmentActions } from "@/components/appointment-actions";
+import { Badge } from "@/components/ui/badge";
 import { AppointmentStatus } from "@prisma/client";
 
 interface AppointmentsTableProps {
@@ -90,12 +91,10 @@ export function AppointmentsTable({
         if (filterType !== "all") {
             result = result.filter(apt => {
                 const customerFreq = apt.customer?.frequency;
-                if (filterType === "recurring") {
-                    return customerFreq === "WEEKLY" || customerFreq === "BIWEEKLY" || customerFreq === "MONTHLY";
-                }
-                if (filterType === "one-time") {
-                    return customerFreq === "ONE_TIME" || !customerFreq;
-                }
+                const isRecurring = customerFreq === "WEEKLY" || customerFreq === "BIWEEKLY" || customerFreq === "MONTHLY";
+
+                if (filterType === "recurring") return isRecurring;
+                if (filterType === "one-time") return !isRecurring;
                 return true;
             });
         }
@@ -265,7 +264,12 @@ export function AppointmentsTable({
                                 </TableCell>
                                 <TableCell>
                                     <div className="flex flex-col">
-                                        <span className="font-medium">{apt.customer.user.name ?? "Cliente Desconhecido"}</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-medium">{apt.customer.user.name ?? "Cliente Desconhecido"}</span>
+                                            {apt.customer?.frequency && apt.customer.frequency !== 'ONE_TIME' && (
+                                                <Badge variant="outline" className="h-4 text-[10px] px-1 bg-blue-50 text-blue-600 border-blue-100 uppercase">Recorrente</Badge>
+                                            )}
+                                        </div>
                                         <span className="text-xs text-muted-foreground flex items-center mt-0.5 truncate max-w-[150px]" title={apt.address}>
                                             <MapPin className="w-3 h-3 mr-1" /> {apt.address}
                                         </span>

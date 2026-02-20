@@ -71,23 +71,70 @@ export async function createAppointment(formData: FormData) {
             endTime = new Date(startTime.getTime() + service.durationMin * 60000);
         }
 
-        // Buscar customer profile para verificar se existe (poderia pegar endereço de lá se vazio)
-        // Mas vamos usar o endereço do form por enquanto.
-
-        await db.appointment.create({
-            data: {
-                tenantId: tenantId,
-                customerId,
-                serviceId,
-                employeeId: employeeId === "unassigned" ? null : employeeId, // Tratar 'sem funcionário'
-                startTime,
-                endTime,
-                price: finalPrice,
-                status: "PENDING",
-                address,
-                notes
-            },
+        // Buscar customer profile para verificar frequência
+        const customer = await db.customer.findUnique({
+            where: { id: customerId }
         });
+
+        if (!customer) return { error: "Cliente não encontrado." };
+
+        const appointmentsToCreate = [];
+        const baseStartTime = startTime;
+        const baseEndTime = endTime;
+
+        // Adicionar o primeiro agendamento (o que foi selecionado)
+        appointmentsToCreate.push({
+            tenantId: tenantId,
+            customerId,
+            serviceId,
+            employeeId: employeeId === "unassigned" ? null : employeeId,
+            startTime: baseStartTime,
+            endTime: baseEndTime,
+            price: finalPrice,
+            status: "PENDING",
+            address,
+            notes
+        });
+
+        // Se for recorrente, gerar mais agendamentos para o mês (próximos 30 dias)
+        if (customer.frequency !== 'ONE_TIME') {
+            let intervalDays = 0;
+            if (customer.frequency === 'WEEKLY') intervalDays = 7;
+            if (customer.frequency === 'BIWEEKLY') intervalDays = 14;
+            if (customer.frequency === 'MONTHLY') intervalDays = 30; // Aproximado ou poderíamos usar addMonths
+
+            if (intervalDays > 0) {
+                // Vamos gerar agendamentos para os próximos 35 dias para garantir que cubra o mês todo
+                for (let i = 1; i <= 5; i++) {
+                    const nextStart = new Date(baseStartTime.getTime() + (i * intervalDays * 24 * 60 * 60 * 1000));
+                    const nextEnd = new Date(baseEndTime.getTime() + (i * intervalDays * 24 * 60 * 60 * 1000));
+
+                    // Limitar a 35 dias do início original
+                    if (nextStart.getTime() - baseStartTime.getTime() > 35 * 24 * 60 * 60 * 1000) break;
+
+                    appointmentsToCreate.push({
+                        tenantId: tenantId,
+                        customerId,
+                        serviceId,
+                        employeeId: employeeId === "unassigned" ? null : employeeId,
+                        startTime: nextStart,
+                        endTime: nextEnd,
+                        price: finalPrice,
+                        status: "PENDING",
+                        address,
+                        notes
+                    });
+                }
+            }
+        }
+
+        // Criar todos os agendamentos de uma vez (ou em loop se preferir transação/createMany)
+        // Usando loop simples para compatibilidade e menor risco de erro com createMany em algumas versões do Prisma/Adapter
+        for (const aptData of appointmentsToCreate) {
+            await db.appointment.create({
+                data: aptData
+            });
+        }
 
         revalidatePath("/admin/appointments");
         revalidatePath("/admin/calendar");
