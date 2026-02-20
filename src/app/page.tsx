@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowRight, Calculator, MapPin, ShieldCheck, Users } from "lucide-react";
+import { APP_VERSION } from "@/lib/version";
 
 export default function Home() {
   return (
@@ -13,10 +14,10 @@ export default function Home() {
       <div className="z-10 max-w-5xl w-full text-center space-y-8">
         <div className="space-y-4">
           <h1 className="text-5xl font-extrabold tracking-tight lg:text-7xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
-            CleanRoute SaaS v3
+            CleanRoute SaaS {APP_VERSION}
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Sistema de Gestão - Versão Atualizada
+            Sistema de Gestão - Versão {APP_VERSION}
           </p>
         </div>
 

@@ -101,6 +101,7 @@ export default async function AppointmentsPage() {
                             clients={clients}
                             services={services}
                             employees={employees}
+                            minDuration={schedulingConfig?.minDurationMin || 60}
                         />
                         <form action={async () => {
                             "use server";

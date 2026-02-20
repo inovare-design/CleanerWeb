@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { APP_VERSION } from "@/lib/version";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/db";
 import { DollarSign, TrendingUp, CreditCard, Receipt, Repeat, Clock } from "lucide-react";
@@ -76,8 +77,10 @@ export default async function FinancePage() {
 
         return (
             <div className="p-8 space-y-8 animate-in fade-in duration-500">
-                <div>
-                    <h1 className="text-4xl font-black tracking-tight italic uppercase">Gestão Financeira</h1>
+                <div className="flex flex-col gap-1">
+                    <h1 className="text-4xl font-black tracking-tight italic uppercase flex items-center gap-3">
+                        Gestão Financeira <span className="text-sm not-italic font-bold text-muted-foreground/50 border border-muted-foreground/20 px-2 py-1 rounded bg-muted/50">{APP_VERSION}</span>
+                    </h1>
                     <p className="text-muted-foreground mt-1">
                         Controle de faturas, fluxos de caixa e faturamento recorrente.
                     </p>

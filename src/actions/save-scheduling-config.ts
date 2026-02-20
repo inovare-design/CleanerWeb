@@ -19,6 +19,7 @@ export async function saveSchedulingConfig(formData: FormData) {
         const rateNormal = formData.get("rateNormal");
         const rateNormal2 = formData.get("rateNormal2");
         const rateUrgent = formData.get("rateUrgent");
+        const minDurationMin = formData.get("minDurationMin");
 
         const config = await db.schedulingConfig.upsert({
             where: { tenantId },
@@ -29,6 +30,7 @@ export async function saveSchedulingConfig(formData: FormData) {
                 rateNormal: Number(rateNormal),
                 rateNormal2: Number(rateNormal2),
                 rateUrgent: Number(rateUrgent),
+                minDurationMin: Number(minDurationMin),
             },
             update: {
                 availability,
@@ -36,6 +38,7 @@ export async function saveSchedulingConfig(formData: FormData) {
                 rateNormal: Number(rateNormal),
                 rateNormal2: Number(rateNormal2),
                 rateUrgent: Number(rateUrgent),
+                minDurationMin: Number(minDurationMin),
             }
         });
 

@@ -100,8 +100,8 @@ export const AdminSidebar = ({ user }: AdminSidebarProps) => {
                         <Truck className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                        <h1 className="text-lg font-bold tracking-tight text-white">
-                            CleanRoute
+                        <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                            CleanRoute <span className="text-[10px] font-medium text-blue-400/80 bg-blue-400/10 px-1.5 py-0.5 rounded border border-blue-400/20">{APP_VERSION}</span>
                         </h1>
                         <p className="text-[9px] text-gray-400 font-medium tracking-wider uppercase">
                             Service Dispatch

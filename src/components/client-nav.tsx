@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { signOut } from "next-auth/react";
 
+import { APP_VERSION } from "@/lib/version";
+
 export function ClientNav() {
     const pathname = usePathname();
 
@@ -25,7 +27,10 @@ export function ClientNav() {
                     <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center">
                         <span className="text-white font-bold">C</span>
                     </div>
-                    <span className="font-bold text-xl tracking-tight">CleanRoute</span>
+                    <div className="flex flex-col">
+                        <span className="font-bold text-xl tracking-tight leading-tight">CleanRoute</span>
+                        <span className="text-[9px] font-bold text-blue-600 tracking-widest uppercase leading-tight">{APP_VERSION}</span>
+                    </div>
                 </div>
 
                 <nav className="flex items-center gap-6">

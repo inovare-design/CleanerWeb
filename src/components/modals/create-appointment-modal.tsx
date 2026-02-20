@@ -32,9 +32,10 @@ type PropType = {
     clients: { id: string; name: string | null; email: string; customerProfile?: { id: string; address: string | null } | null }[];
     services: { id: string; name: string; durationMin: number; price: number }[];
     employees: { id: string; name: string | null; employeeProfile?: { id: string } | null }[];
+    minDuration?: number;
 };
 
-export function CreateAppointmentModal({ clients, services, employees }: PropType) {
+export function CreateAppointmentModal({ clients, services, employees, minDuration = 60 }: PropType) {
     const [open, setOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
@@ -50,6 +51,7 @@ export function CreateAppointmentModal({ clients, services, employees }: PropTyp
     const [availableSlots, setAvailableSlots] = useState<{ time: string; available: boolean }[]>([]);
     const [loadingSlots, setLoadingSlots] = useState(false);
     const [selectedTime, setSelectedTime] = useState("");
+    const [selectedDuration, setSelectedDuration] = useState(minDuration);
 
     // Fetch slots when Date or Service changes
     useEffect(() => {
@@ -68,6 +70,23 @@ export function CreateAppointmentModal({ clients, services, employees }: PropTyp
         };
         fetchSlots();
     }, [selectedDate, selectedServiceId, services]);
+
+    // Gerar opções de duração (de minDuration até 480 min / 8h)
+    const durationOptions = [];
+    for (let d = minDuration; d <= 480; d += 30) {
+        durationOptions.push(d);
+    }
+
+    const calculatePrice = () => {
+        if (!selectedDuration || !selectedServiceId) return 0;
+        const service = services.find(s => s.id === selectedServiceId);
+        if (!service) return 0;
+
+        const durationHours = selectedDuration / 60;
+        return durationHours * (service.price);
+    };
+
+    const totalPrice = calculatePrice();
 
     const handleClientChange = (customerId: string) => {
         setSelectedClientId(customerId);
@@ -204,23 +223,46 @@ export function CreateAppointmentModal({ clients, services, employees }: PropTyp
                                     value={selectedDate}
                                     onChange={(e) => setSelectedDate(e.target.value)}
                                 />
-                                <Select onValueChange={setSelectedTime} disabled={!selectedDate || loadingSlots}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder={loadingSlots ? "Carregando horários..." : (selectedTime || "Selecione o horário")} />
-                                    </SelectTrigger>
-                                    <SelectContent className="max-h-[200px]">
-                                        {availableSlots.length > 0 ? (
-                                            availableSlots.map(slot => (
-                                                <SelectItem key={slot.time} value={slot.time} disabled={!slot.available}>
-                                                    {slot.time} {slot.available ? "" : "(Ocupado)"}
+                                <div className="grid grid-cols-2 gap-2">
+                                    <Select onValueChange={(t) => setSelectedTime(t)} disabled={!selectedDate || loadingSlots}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder={loadingSlots ? "Carregando..." : (selectedTime || "Início")} />
+                                        </SelectTrigger>
+                                        <SelectContent className="max-h-[200px]">
+                                            {availableSlots.length > 0 ? (
+                                                availableSlots.map(slot => (
+                                                    <SelectItem key={slot.time} value={slot.time} disabled={!slot.available}>
+                                                        {slot.time} {slot.available ? "" : "(Ocupado)"}
+                                                    </SelectItem>
+                                                ))
+                                            ) : (
+                                                <SelectItem value="none" disabled>Nenhum horário</SelectItem>
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                    <Select
+                                        defaultValue={String(minDuration)}
+                                        onValueChange={(v) => setSelectedDuration(Number(v))}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Duração" />
+                                        </SelectTrigger>
+                                        <SelectContent className="max-h-[200px]">
+                                            {durationOptions.map(d => (
+                                                <SelectItem key={d} value={String(d)}>
+                                                    {d / 60}h {d % 60 !== 0 ? "30min" : ""}
                                                 </SelectItem>
-                                            ))
-                                        ) : (
-                                            <SelectItem value="none" disabled>Nenhum horário disponível</SelectItem>
-                                        )}
-                                    </SelectContent>
-                                </Select>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                                 <input type="hidden" name="time" value={selectedTime} />
+                                <input type="hidden" name="duration" value={selectedDuration} />
+                                {totalPrice > 0 && (
+                                    <p className="text-sm font-semibold text-violet-700 mt-1">
+                                        Preço Estimado: R$ {totalPrice.toFixed(2)}
+                                    </p>
+                                )}
                             </div>
                         </div>
 

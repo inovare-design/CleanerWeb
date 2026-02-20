@@ -176,6 +176,7 @@ model SchedulingConfig {
   rateNormal           Decimal  @default(50.00)
   rateNormal2          Decimal  @default(75.00)
   rateUrgent           Decimal  @default(100.00)
+  minDurationMin       Int      @default(60)
   tenantId             String   @unique
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt

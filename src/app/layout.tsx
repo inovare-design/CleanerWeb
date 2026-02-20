@@ -12,9 +12,11 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+import { APP_VERSION } from "@/lib/version";
+
 export const metadata: Metadata = {
-  title: "CleanRoute v3 - Active",
-  description: "Updated Deployment V3",
+  title: `CleanRoute ${APP_VERSION} - Active`,
+  description: `Updated Deployment ${APP_VERSION}`,
 };
 
 import { SessionProvider } from "next-auth/react";

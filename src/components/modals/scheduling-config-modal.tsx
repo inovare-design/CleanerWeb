@@ -25,6 +25,7 @@ type SchedulingConfigModalProps = {
         rateNormal: number;
         rateNormal2: number;
         rateUrgent: number;
+        minDurationMin: number;
     } | null;
 };
 
@@ -48,7 +49,8 @@ export function SchedulingConfigModal({ initialConfig }: SchedulingConfigModalPr
         holidays: "[]",
         rateNormal: 50,
         rateNormal2: 75,
-        rateUrgent: 100
+        rateUrgent: 100,
+        minDurationMin: 60
     };
 
     const config = initialConfig || defaultConfig;
@@ -63,6 +65,7 @@ export function SchedulingConfigModal({ initialConfig }: SchedulingConfigModalPr
     const [rateNormal, setRateNormal] = useState(config.rateNormal);
     const [rateNormal2, setRateNormal2] = useState(config.rateNormal2);
     const [rateUrgent, setRateUrgent] = useState(config.rateUrgent);
+    const [minDurationMin, setMinDurationMin] = useState(config.minDurationMin);
 
     // Helper to add a time range
     const addTimeRange = (dayId: string) => {
@@ -104,6 +107,7 @@ export function SchedulingConfigModal({ initialConfig }: SchedulingConfigModalPr
         formData.append("rateNormal", String(rateNormal));
         formData.append("rateNormal2", String(rateNormal2));
         formData.append("rateUrgent", String(rateUrgent));
+        formData.append("minDurationMin", String(minDurationMin));
 
         startTransition(async () => {
             const result = await saveSchedulingConfig(formData);
@@ -224,6 +228,16 @@ export function SchedulingConfigModal({ initialConfig }: SchedulingConfigModalPr
                                         step="0.01"
                                         value={rateUrgent}
                                         onChange={(e) => setRateUrgent(Number(e.target.value))}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 items-center gap-4">
+                                    <Label htmlFor="minDurationMin">Tempo Mínimo (Minutos)</Label>
+                                    <Input
+                                        id="minDurationMin"
+                                        type="number"
+                                        step="30"
+                                        value={minDurationMin}
+                                        onChange={(e) => setMinDurationMin(Number(e.target.value))}
                                     />
                                 </div>
                             </div>
