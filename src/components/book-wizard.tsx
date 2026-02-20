@@ -40,10 +40,13 @@ export default function BookWizard({
     const [time, setTime] = useState<string>("");
     const [address, setAddress] = useState(userAddress);
     const [notes, setNotes] = useState("");
+    const [warnings, setWarnings] = useState("");
+    const [priorityAreas, setPriorityAreas] = useState("");
+    const [customDuration, setCustomDuration] = useState("");
 
     const handleNext = () => {
         if (step === 1 && !selectedService) return;
-        if (step === 3 && (!date || !time)) return;
+        if (step === 3 && (!date || !time || !address)) return;
         setStep(prev => prev + 1);
     };
 
@@ -62,6 +65,9 @@ export default function BookWizard({
         formData.append("time", time);
         formData.append("address", address);
         formData.append("notes", notes);
+        formData.append("warnings", warnings);
+        formData.append("priorityAreas", priorityAreas);
+        formData.append("customDuration", customDuration);
 
         const result = await bookAppointment(formData);
 
@@ -80,7 +86,7 @@ export default function BookWizard({
         <div className="max-w-2xl mx-auto space-y-8">
             {/* Progress Steps */}
             <div className="flex justify-between items-center px-2">
-                {[1, 2, 3, 4].map((s) => (
+                {[1, 2, 3, 4, 5].map((s) => (
                     <div key={s} className="flex flex-col items-center">
                         <div className={cn(
                             "w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm transition-colors",
@@ -88,8 +94,8 @@ export default function BookWizard({
                         )}>
                             {s}
                         </div>
-                        <span className="text-[10px] mt-1 text-gray-500 uppercase font-medium">
-                            {s === 1 ? "Serviço" : s === 2 ? "Equipe" : s === 3 ? "Data" : "Revisão"}
+                        <span className="text-[10px] mt-1 text-gray-500 uppercase font-medium text-center">
+                            {s === 1 ? "Serviço" : s === 2 ? "Equipe" : s === 3 ? "Data" : s === 4 ? "Detalhes" : "Revisão"}
                         </span>
                     </div>
                 ))}
@@ -206,6 +212,7 @@ export default function BookWizard({
                                     <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                                     <Input
                                         id="address"
+                                        placeholder="Seu endereço completo"
                                         value={address}
                                         onChange={(e) => setAddress(e.target.value)}
                                         className="pl-9"
@@ -215,8 +222,51 @@ export default function BookWizard({
                         </div>
                     )}
 
-                    {/* STEP 4: REVISÃO */}
+                    {/* STEP 4: DETALHES ADICIONAIS */}
                     {step === 4 && (
+                        <div className="space-y-6">
+                            <h2 className="text-xl font-semibold">Detalhes do Atendimento</h2>
+
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="duration">Quantas horas deseja contratar? (Opcional)</Label>
+                                    <Input
+                                        id="duration"
+                                        type="number"
+                                        min="1"
+                                        max="24"
+                                        placeholder={`Padrão: ${selectedService?.durationMin} min`}
+                                        value={customDuration}
+                                        onChange={(e) => setCustomDuration(e.target.value)}
+                                    />
+                                    <p className="text-[10px] text-muted-foreground italic">Deixe vazio para usar a duração padrão do serviço.</p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="priority">Ranking de Prioridade (Quais locais limpar primeiro?)</Label>
+                                    <Textarea
+                                        id="priority"
+                                        placeholder="Ex: 1. Cozinha, 2. Banheiros, 3. Quartos..."
+                                        value={priorityAreas}
+                                        onChange={(e) => setPriorityAreas(e.target.value)}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="warnings">Avisos e Cuidados Especiais</Label>
+                                    <Textarea
+                                        id="warnings"
+                                        placeholder="Ex: Cuidado com o pet, o portão trava, não mexer na prataria..."
+                                        value={warnings}
+                                        onChange={(e) => setWarnings(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* STEP 5: REVISÃO */}
+                    {step === 5 && (
                         <div className="space-y-6">
                             <h2 className="text-xl font-semibold text-center">Tudo certo?</h2>
 
@@ -240,7 +290,7 @@ export default function BookWizard({
                                             {date && format(date, "dd 'de' MMMM", { locale: ptBR })}
                                         </p>
                                         <p className="text-sm text-muted-foreground ml-6">
-                                            às {time}
+                                            às {time} ({customDuration ? `${customDuration} horas` : `${selectedService?.durationMin} min`})
                                         </p>
                                     </div>
 
@@ -262,13 +312,36 @@ export default function BookWizard({
                                         {address}
                                     </p>
                                 </div>
+
+                                {(priorityAreas || warnings || notes) && (
+                                    <div className="pt-4 border-t border-blue-100 space-y-2">
+                                        {priorityAreas && (
+                                            <div>
+                                                <p className="text-[10px] text-blue-600 uppercase font-bold">Prioridades</p>
+                                                <p className="text-sm">{priorityAreas}</p>
+                                            </div>
+                                        )}
+                                        {warnings && (
+                                            <div>
+                                                <p className="text-[10px] text-blue-600 uppercase font-bold">Cuidados</p>
+                                                <p className="text-sm">{warnings}</p>
+                                            </div>
+                                        )}
+                                        {notes && (
+                                            <div>
+                                                <p className="text-[10px] text-blue-600 uppercase font-bold">Notas Gerais</p>
+                                                <p className="text-sm">{notes}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="notes">Observações (Opcional)</Label>
+                                <Label htmlFor="notes">Outras Observações (Opcional)</Label>
                                 <Textarea
                                     id="notes"
-                                    placeholder="Ex: Tem cachorro bravo, portão com defeito..."
+                                    placeholder="Algo mais que queira nos dizer?"
                                     value={notes}
                                     onChange={(e) => setNotes(e.target.value)}
                                 />
@@ -293,7 +366,7 @@ export default function BookWizard({
                             <ChevronLeft className="w-4 h-4 mr-2" /> Voltar
                         </Button>
 
-                        {step < 4 ? (
+                        {step < 5 ? (
                             <Button
                                 onClick={handleNext}
                                 disabled={

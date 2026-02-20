@@ -13,6 +13,9 @@ const BookSchema = z.object({
     time: z.string().min(1, "Selecione um horário"),
     notes: z.string().optional(),
     address: z.string().min(1, "Endereço é obrigatório"),
+    warnings: z.string().optional(),
+    priorityAreas: z.string().optional(),
+    customDuration: z.string().optional()
 });
 
 export async function bookAppointment(formData: FormData) {
@@ -28,6 +31,9 @@ export async function bookAppointment(formData: FormData) {
         time: formData.get("time"),
         notes: formData.get("notes"),
         address: formData.get("address"),
+        warnings: formData.get("warnings"),
+        priorityAreas: formData.get("priorityAreas"),
+        customDuration: formData.get("customDuration"),
     };
 
     const validatedFields = BookSchema.safeParse(rawData);
@@ -36,7 +42,17 @@ export async function bookAppointment(formData: FormData) {
         return { error: "Preencha todos os campos obrigatórios." };
     }
 
-    const { serviceId, employeeId, date, time, notes, address } = validatedFields.data;
+    const {
+        serviceId,
+        employeeId,
+        date,
+        time,
+        notes,
+        address,
+        warnings,
+        priorityAreas,
+        customDuration
+    } = validatedFields.data;
 
     try {
         // 1. Buscar o CustomerProfile do usuário logado
@@ -61,7 +77,14 @@ export async function bookAppointment(formData: FormData) {
         // 3. Calcular StartTime e EndTime
         // Date string: YYYY-MM-DD, Time string: HH:MM
         const startDateTime = new Date(`${date}T${time}:00`);
-        const endDateTime = new Date(startDateTime.getTime() + service.durationMin * 60000);
+
+        // Se houver duração customizada, usa ela (conversão de horas para ms)
+        // Caso contrário, usa a duração padrão do serviço (minutos para ms)
+        const durationMs = customDuration
+            ? parseInt(customDuration) * 60 * 60 * 1000
+            : service.durationMin * 60 * 1000;
+
+        const endDateTime = new Date(startDateTime.getTime() + durationMs);
 
         // 4. Criar Agendamento
         await db.appointment.create({
@@ -71,10 +94,13 @@ export async function bookAppointment(formData: FormData) {
                 price: service.price,
                 status: "PENDING",
                 notes: notes,
-                address: address, // Usa o endereço do form (pode vir pré-preenchido do perfil)
+                address: address,
+                warnings: warnings,
+                priorityAreas: priorityAreas,
+                customDuration: customDuration ? parseInt(customDuration) : undefined,
                 customerId: user.customerProfile.id,
                 serviceId: service.id,
-                tenantId: user.tenantId!, // Assumindo tenant vinculado ao usuário
+                tenantId: user.tenantId!,
                 employeeId: employeeId && employeeId !== "any" ? employeeId : undefined
             }
         });

@@ -116,6 +116,9 @@ model Appointment {
   createdAt              DateTime            @default(now())
   updatedAt              DateTime            @updatedAt
   tipPrice               Decimal             @default(0.00)
+  warnings               String?
+  priorityAreas          String?
+  customDuration         Int?
   customer               Customer            @relation(fields: [customerId], references: [id])
   employee               Employee?           @relation(fields: [employeeId], references: [id])
   invoice                Invoice?            @relation(fields: [invoiceId], references: [id])
