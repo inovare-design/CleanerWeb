@@ -46,7 +46,9 @@ export function EditClientModal({ client }: EditClientModalProps) {
 
     // Parse existing details if available
     const existingDetails = client.customerProfile?.frequencyDetails ? JSON.parse(client.customerProfile.frequencyDetails) : {};
-    const [selectedDays, setSelectedDays] = useState<string[]>(existingDetails.days || []);
+    const [selectedDays, setSelectedDays] = useState<string[]>(Array.isArray(existingDetails.days) ? existingDetails.days : []);
+    const [startTime, setStartTime] = useState(existingDetails.startTime || "");
+    const [endTime, setEndTime] = useState(existingDetails.endTime || "");
 
     const handleDayToggle = (dayId: string) => {
         setSelectedDays(prev =>
@@ -69,7 +71,9 @@ export function EditClientModal({ client }: EditClientModalProps) {
         if (frequency !== "ONE_TIME") {
             const details = {
                 timesPerWeek: formData.get("timesPerWeek"),
-                days: selectedDays
+                days: selectedDays,
+                startTime,
+                endTime
             };
             formData.append("frequencyDetails", JSON.stringify(details));
         }
@@ -194,24 +198,47 @@ export function EditClientModal({ client }: EditClientModalProps) {
                             </div>
 
                             {frequency !== "ONE_TIME" && (
-                                <div className="space-y-2">
-                                    <Label>Dias de Preferência</Label>
-                                    <div className="flex flex-wrap gap-2">
-                                        {WEEK_DAYS.map((day) => (
-                                            <div key={day.id} className="flex items-center space-x-2 border p-2 rounded-md hover:bg-muted cursor-pointer" onClick={() => handleDayToggle(day.id)}>
-                                                <Checkbox
-                                                    id={day.id}
-                                                    checked={selectedDays.includes(day.id)}
-                                                    onCheckedChange={() => handleDayToggle(day.id)}
-                                                />
-                                                <label
-                                                    htmlFor={day.id}
-                                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                                                >
-                                                    {day.label}
-                                                </label>
-                                            </div>
-                                        ))}
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label>Dias de Preferência</Label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {WEEK_DAYS.map((day) => (
+                                                <div key={day.id} className="flex items-center space-x-2 border p-2 rounded-md hover:bg-muted">
+                                                    <Checkbox
+                                                        id={day.id}
+                                                        checked={selectedDays.includes(day.id)}
+                                                        onCheckedChange={() => handleDayToggle(day.id)}
+                                                    />
+                                                    <label
+                                                        htmlFor={day.id}
+                                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                                    >
+                                                        {day.label}
+                                                    </label>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="startTime">Horário de Início (Recorrente)</Label>
+                                            <Input
+                                                id="startTime"
+                                                type="time"
+                                                value={startTime}
+                                                onChange={(e) => setStartTime(e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="endTime">Horário de Término (Recorrente)</Label>
+                                            <Input
+                                                id="endTime"
+                                                type="time"
+                                                value={endTime}
+                                                onChange={(e) => setEndTime(e.target.value)}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             )}
