@@ -29,18 +29,23 @@ import { AppointmentActions } from "@/components/appointment-actions";
 // Tipos auxiliares
 import { AppointmentStatus } from "@prisma/client";
 
-async function getData(query: string, tenantId: string, sort: string = 'date', order: 'asc' | 'desc' = 'desc') {
+export const dynamic = 'force-dynamic';
+
+async function getData(query: string, tenantId: string, sort: string = 'date', order: string = 'desc') {
+    // Validar order
+    const validOrder: 'asc' | 'desc' = order === 'asc' ? 'asc' : 'desc';
+
     // Definir ordenação do Prisma
-    let orderBy: any = { startTime: order };
+    let orderBy: any = { startTime: validOrder };
 
     if (sort === 'customer') {
-        orderBy = { customer: { user: { name: order } } };
+        orderBy = { customer: { user: { name: validOrder } } };
     } else if (sort === 'service') {
-        orderBy = { service: { name: order } };
+        orderBy = { service: { name: validOrder } };
     } else if (sort === 'employee') {
-        orderBy = { employee: { user: { name: order } } };
+        orderBy = { employee: { user: { name: validOrder } } };
     } else if (sort === 'status') {
-        orderBy = { status: order };
+        orderBy = { status: validOrder };
     }
 
     // Buscar Agendamentos
@@ -141,7 +146,7 @@ export default async function AppointmentsPage(props: {
     searchParams?: Promise<{
         q?: string;
         sort?: string;
-        order?: 'asc' | 'desc';
+        order?: string;
     }>;
 }) {
     const session = await auth();
@@ -212,16 +217,23 @@ export default async function AppointmentsPage(props: {
                             </CardDescription>
                         </div>
                         <div className="flex items-center space-x-2 w-full md:w-auto">
-                            <form className="relative flex items-center">
-                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    name="q"
-                                    defaultValue={searchParams?.q}
-                                    className="pl-9 w-[250px]"
-                                    placeholder="Buscar cliente ou serviço..."
-                                />
+                            <form className="relative flex items-center gap-2">
+                                <div className="relative">
+                                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        name="q"
+                                        defaultValue={searchParams?.q}
+                                        className="pl-9 w-[250px]"
+                                        placeholder="Buscar cliente ou serviço..."
+                                    />
+                                </div>
                                 {sort !== 'date' && <input type="hidden" name="sort" value={sort} />}
                                 {order !== 'desc' && <input type="hidden" name="order" value={order} />}
+                                {(query || sort !== 'date' || order !== 'desc') && (
+                                    <Button variant="ghost" size="sm" asChild className="text-xs h-9">
+                                        <Link href="/admin/appointments">Limpar</Link>
+                                    </Button>
+                                )}
                             </form>
                         </div>
                     </CardHeader>
