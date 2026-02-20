@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, Mail, MapPin, Phone, User, Clock, CheckCircle, AlertCircle, Home, Key } from "lucide-react";
 import { ClientProfileHeaderActions } from "@/components/client-profile-header-actions";
 import { ClientStatusBadge } from "@/components/client-status-badge";
+import { CreateAppointmentModal } from "@/components/modals/create-appointment-modal";
+import { AppointmentActions } from "@/components/appointment-actions";
 import {
     Table,
     TableBody,
@@ -18,41 +20,68 @@ import {
     TableRow,
 } from "@/components/ui/table";
 
-async function getClientData(id: string) {
-    const client = await db.user.findUnique({
-        where: { id },
-        include: {
-            customerProfile: {
-                include: {
-                    invoices: {
-                        orderBy: { createdAt: 'desc' }
-                    },
-                    appointments: {
-                        include: {
-                            service: true,
-                            employee: {
-                                include: {
-                                    user: true
-                                }
-                            }
+async function getClientData(id: string, tenantId: string) {
+    const [client, services, employees, allClients] = await Promise.all([
+        db.user.findUnique({
+            where: { id },
+            include: {
+                customerProfile: {
+                    include: {
+                        invoices: {
+                            orderBy: { createdAt: 'desc' }
                         },
-                        orderBy: {
-                            startTime: 'desc'
+                        appointments: {
+                            include: {
+                                service: true,
+                                employee: {
+                                    include: {
+                                        user: true
+                                    }
+                                }
+                            },
+                            orderBy: {
+                                startTime: 'desc'
+                            }
                         }
                     }
                 }
             }
-        }
-    });
-    return client;
+        }),
+        db.service.findMany({
+            where: { tenantId },
+            orderBy: { name: 'asc' }
+        }),
+        db.user.findMany({
+            where: { role: "CLEANER", tenantId },
+            include: { employeeProfile: true },
+            orderBy: { name: 'asc' }
+        }),
+        db.user.findMany({
+            where: { role: "CLIENT", tenantId },
+            include: { customerProfile: true },
+            orderBy: { name: 'asc' }
+        })
+    ]);
+
+    const formattedServices = services.map((s: any) => ({
+        ...s,
+        price: Number(s.price)
+    }));
+
+    return {
+        client,
+        services: formattedServices,
+        employees,
+        allClients
+    };
 }
 
 export default async function ClientProfilePage({ params }: { params: Promise<{ id: string }> }) {
     const session = await auth();
-    if (!session) redirect("/login");
+    if (!session?.user?.tenantId) redirect("/login");
 
     const resolvedParams = await params;
-    const client = await getClientData(resolvedParams.id);
+    const { client, services, employees, allClients } = await getClientData(resolvedParams.id, session.user.tenantId);
 
     if (!client || client.role !== "CLIENT") {
         return <div>Cliente não encontrado</div>;
@@ -236,11 +265,18 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
                 {/* AGENDAMENTOS */}
                 <TabsContent value="appointments" className="mt-6">
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Histórico de Agendamentos</CardTitle>
-                            <CardDescription>
-                                Lista completa de serviços agendados, realizados e cancelados.
-                            </CardDescription>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle>Histórico de Agendamentos</CardTitle>
+                                <CardDescription>
+                                    Lista completa de serviços agendados, realizados e cancelados.
+                                </CardDescription>
+                            </div>
+                            <CreateAppointmentModal
+                                clients={allClients}
+                                services={services}
+                                employees={employees}
+                            />
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-8">
@@ -272,27 +308,35 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
                                                     </p>
                                                 )}
                                             </div>
-                                            <div className="flex flex-col items-end gap-1">
-                                                <span className="font-bold">R$ {Number(apt.price).toFixed(2)}</span>
-                                                <span className="text-xs text-muted-foreground">{apt.address}</span>
+                                            <div className="flex items-center gap-4">
+                                                <div className="flex flex-col items-end gap-1">
+                                                    <span className="font-bold">R$ {Number(apt.price).toFixed(2)}</span>
+                                                    <span className="text-xs text-muted-foreground">{apt.address}</span>
 
-                                                {/* Detalhes de Rastreamento */}
-                                                <div className="text-[10px] text-muted-foreground text-right space-y-0.5 mt-2 bg-muted/30 p-2 rounded">
-                                                    <div title="Data do Pedido">Pedido: {new Date(apt.createdAt).toLocaleDateString()}</div>
-                                                    {apt.actualStartTime && (
-                                                        <div className="text-green-600 flex items-center justify-end gap-1">
-                                                            <Clock className="w-3 h-3" /> Início: {new Date(apt.actualStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                        </div>
-                                                    )}
-                                                    {apt.actualEndTime && (
-                                                        <div>Término: {new Date(apt.actualEndTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                                                    )}
-                                                    {apt.clientConfirmationDate && (
-                                                        <div className="text-blue-600 flex items-center justify-end gap-1" title="Confirmado pelo cliente">
-                                                            <CheckCircle className="w-3 h-3" /> Confirmado: {new Date(apt.clientConfirmationDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                        </div>
-                                                    )}
+                                                    {/* Detalhes de Rastreamento */}
+                                                    <div className="text-[10px] text-muted-foreground text-right space-y-0.5 mt-2 bg-muted/30 p-2 rounded">
+                                                        <div title="Data do Pedido">Pedido: {new Date(apt.createdAt).toLocaleDateString()}</div>
+                                                        {apt.actualStartTime && (
+                                                            <div className="text-green-600 flex items-center justify-end gap-1">
+                                                                <Clock className="w-3 h-3" /> Início: {new Date(apt.actualStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            </div>
+                                                        )}
+                                                        {apt.actualEndTime && (
+                                                            <div>Término: {new Date(apt.actualEndTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                                        )}
+                                                        {apt.clientConfirmationDate && (
+                                                            <div className="text-blue-600 flex items-center justify-end gap-1" title="Confirmado pelo cliente">
+                                                                <CheckCircle className="w-3 h-3" /> Confirmado: {new Date(apt.clientConfirmationDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
+                                                <AppointmentActions
+                                                    appointment={apt}
+                                                    clients={allClients}
+                                                    services={services}
+                                                    employees={employees}
+                                                />
                                             </div>
                                         </div>
                                     ))
