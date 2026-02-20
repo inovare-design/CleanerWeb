@@ -13,6 +13,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
     Search,
     Calendar as CalendarIcon,
     MapPin,
@@ -62,13 +69,14 @@ export function AppointmentsTable({
     employees
 }: AppointmentsTableProps) {
     const [query, setQuery] = useState("");
+    const [filterType, setFilterType] = useState<string>("all");
     const [sortKey, setSortKey] = useState<string>("date");
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
     const filteredAndSortedAppointments = useMemo(() => {
         let result = [...initialAppointments];
 
-        // 1. Filter
+        // 1. Filter by Search
         if (query) {
             const lowQuery = query.toLowerCase();
             result = result.filter(apt =>
@@ -76,6 +84,20 @@ export function AppointmentsTable({
                 (apt.service?.name?.toLowerCase().includes(lowQuery)) ||
                 (apt.address?.toLowerCase().includes(lowQuery))
             );
+        }
+
+        // 1.1 Filter by Type (Recurring vs One-time)
+        if (filterType !== "all") {
+            result = result.filter(apt => {
+                const customerFreq = apt.customer?.frequency;
+                if (filterType === "recurring") {
+                    return customerFreq === "WEEKLY" || customerFreq === "BIWEEKLY" || customerFreq === "MONTHLY";
+                }
+                if (filterType === "one-time") {
+                    return customerFreq === "ONE_TIME" || !customerFreq;
+                }
+                return true;
+            });
         }
 
         // 2. Sort
@@ -138,8 +160,21 @@ export function AppointmentsTable({
                         {filteredAndSortedAppointments.length} agendamentos encontrados.
                     </CardDescription>
                 </div>
-                <div className="flex items-center space-x-2 w-full md:w-auto">
-                    <div className="relative flex items-center gap-2">
+                <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
+                    <div className="w-full md:w-[180px]">
+                        <Select value={filterType} onValueChange={setFilterType}>
+                            <SelectTrigger className="h-9">
+                                <span className="text-xs font-medium">Tipo: </span>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todos</SelectItem>
+                                <SelectItem value="recurring">Recorrentes</SelectItem>
+                                <SelectItem value="one-time">Avulsos</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="relative flex items-center gap-2 w-full md:w-auto">
                         <div className="relative">
                             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                             <Input
@@ -155,6 +190,7 @@ export function AppointmentsTable({
                                 size="sm"
                                 onClick={() => {
                                     setQuery("");
+                                    setFilterType("all");
                                     setSortKey("date");
                                     setSortOrder("desc");
                                 }}

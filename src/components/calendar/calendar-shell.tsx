@@ -38,6 +38,7 @@ export function CalendarShell({ appointments, employees, clients, services }: { 
     const [view, setView] = useState<ViewType>("day");
     const [activeAppointment, setActiveAppointment] = useState<any>(null);
     const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("all");
+    const [filterType, setFilterType] = useState<string>("all");
 
     // Modal State
     const [editingAppointment, setEditingAppointment] = useState<any>(null);
@@ -52,12 +53,25 @@ export function CalendarShell({ appointments, employees, clients, services }: { 
     };
 
     // Filter Logic
-    const filteredAppointments = selectedEmployeeId === "all"
-        ? appointments
-        : appointments.filter(a => {
-            if (selectedEmployeeId === "unassigned") return !a.employeeId;
-            return a.employeeId === selectedEmployeeId;
-        });
+    const filteredAppointments = appointments.filter(a => {
+        // 1. Filter by Employee
+        const empMatch = selectedEmployeeId === "all" ||
+            (selectedEmployeeId === "unassigned" ? !a.employeeId : a.employeeId === selectedEmployeeId);
+        if (!empMatch) return false;
+
+        // 2. Filter by Type
+        if (filterType !== "all") {
+            const customerFreq = a.customer?.frequency;
+            if (filterType === "recurring") {
+                return customerFreq === "WEEKLY" || customerFreq === "BIWEEKLY" || customerFreq === "MONTHLY";
+            }
+            if (filterType === "one-time") {
+                return customerFreq === "ONE_TIME" || !customerFreq;
+            }
+        }
+
+        return true;
+    });
 
     const filteredEmployees = selectedEmployeeId === "all"
         ? employees
@@ -268,6 +282,20 @@ export function CalendarShell({ appointments, employees, clients, services }: { 
                                     </Button>
                                 );
                             })}
+                        </div>
+
+                        {/* Type Filter */}
+                        <div className="w-[140px] shrink-0">
+                            <Select value={filterType} onValueChange={setFilterType}>
+                                <SelectTrigger className="h-7 text-[11px]">
+                                    <SelectValue placeholder="Tipo" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todos Tipos</SelectItem>
+                                    <SelectItem value="recurring">Recorrentes</SelectItem>
+                                    <SelectItem value="one-time">Avulsos</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
 
                         <div className="flex items-center border rounded-md p-0.5 bg-muted/50 shrink-0">
