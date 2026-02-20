@@ -34,11 +34,19 @@ async function getData(tenantId: string) {
     }));
 
     // Buscar dados para o Modal de Criação (Dropdowns)
-    const clients = await db.user.findMany({
+    const rawClients = await db.user.findMany({
         where: { role: "CLIENT", tenantId },
         include: { customerProfile: true },
         orderBy: { name: 'asc' }
     });
+
+    // Modificando para usar o ID do perfil de cliente (customerId), não o ID do usuário
+    const formattedClients = rawClients.map((u: any) => ({
+        id: u.customerProfile?.id || u.id,
+        name: u.name,
+        email: u.email,
+        customerProfile: u.customerProfile
+    }));
 
     const services = await db.service.findMany({
         where: { tenantId },
@@ -69,7 +77,7 @@ async function getData(tenantId: string) {
 
     return {
         appointments: formattedAppointments,
-        clients,
+        clients: formattedClients,
         services: formattedServices,
         employees,
         schedulingConfig: formattedConfig

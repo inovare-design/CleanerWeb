@@ -61,6 +61,20 @@ export function EditAppointmentModal({ open, onOpenChange, appointment, clients,
     const [loadingSlots, setLoadingSlots] = useState(false);
     const [selectedTime, setSelectedTime] = useState(format(new Date(appointment.startTime), "HH:mm"));
 
+    // Sync state when modal opens or appointment changes
+    useEffect(() => {
+        if (open) {
+            setSelectedClientId(appointment.customerId);
+            setSelectedServiceId(appointment.serviceId);
+            setSelectedEmployeeId(appointment.employeeId || "");
+            setAddress(appointment.address);
+            setNotes(appointment.notes || "");
+            setStatus(appointment.status);
+            setSelectedDate(format(new Date(appointment.startTime), "yyyy-MM-dd"));
+            setSelectedTime(format(new Date(appointment.startTime), "HH:mm"));
+        }
+    }, [open, appointment]);
+
     // Fetch slots when Date or Service changes
     useEffect(() => {
         if (!selectedDate || !selectedServiceId) return;
