@@ -34,8 +34,8 @@ async function getData(query: string, tenantId: string) {
         where: {
             tenantId,
             OR: [
-                { customer: { user: { name: { contains: query } } } },
-                { service: { name: { contains: query } } }
+                { customer: { user: { name: { contains: query, mode: 'insensitive' } } } },
+                { service: { name: { contains: query, mode: 'insensitive' } } }
             ]
         },
         include: {
@@ -47,6 +47,17 @@ async function getData(query: string, tenantId: string) {
             startTime: 'desc'
         }
     });
+
+    // Formatar appointments para remover Decimais (evitar erro de serialização no Client Component)
+    const formattedAppointments = appointments.map((apt: any) => ({
+        ...apt,
+        price: Number(apt.price),
+        tipPrice: Number(apt.tipPrice),
+        service: {
+            ...apt.service,
+            price: Number(apt.service.price)
+        }
+    }));
 
     // Buscar dados para o Modal de Criação (Dropdowns)
     const clients = await db.user.findMany({
@@ -64,7 +75,7 @@ async function getData(query: string, tenantId: string) {
     });
 
     // Converter Decimal para number para passar ao Client Component
-    const formattedServices = services.map(s => ({
+    const formattedServices = services.map((s: any) => ({
         ...s,
         price: Number(s.price)
     }));
@@ -90,7 +101,13 @@ async function getData(query: string, tenantId: string) {
         rateUrgent: Number(schedulingConfig.rateUrgent),
     } : null;
 
-    return { appointments, clients, services: formattedServices, employees, schedulingConfig: formattedConfig };
+    return {
+        appointments: formattedAppointments,
+        clients,
+        services: formattedServices,
+        employees,
+        schedulingConfig: formattedConfig
+    };
 }
 
 const getStatusBadge = (status: AppointmentStatus) => {
@@ -123,141 +140,160 @@ export default async function AppointmentsPage(props: {
     const tenantId = session.user.tenantId;
     if (!tenantId) return <div>Erro: Usuário sem tenant vinculado.</div>;
 
-    const { appointments, clients, services, employees, schedulingConfig } = await getData(query, tenantId);
+    try {
+        const { appointments, clients, services, employees, schedulingConfig } = await getData(query, tenantId);
 
-    return (
-        <div className="p-8 space-y-8 h-full flex flex-col">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Agendamentos</h2>
-                    <p className="text-muted-foreground">
-                        Gerencie as ordens de serviço e cronograma.
-                    </p>
-                </div>
-                <div className="flex items-center space-x-2">
-                    <SchedulingConfigModal initialConfig={schedulingConfig} />
-                    <CreateAppointmentModal
-                        clients={clients}
-                        services={services}
-                        employees={employees}
-                    />
-                    <form action={async () => {
-                        "use server";
-                        const { checkAutoConfirmAppointments } = await import("@/actions/check-auto-confirm");
-                        if (session?.user?.tenantId) {
-                            await checkAutoConfirmAppointments(session.user.tenantId);
-                        }
-                    }}>
-                        <Button variant="outline" size="sm" type="submit">
-                            Check Auto-Confirm
-                        </Button>
-                    </form>
-                </div>
-            </div>
-
-            <Card className="flex-1 overflow-hidden flex flex-col border-violet-100 dark:border-violet-900/20">
-                <CardHeader className="border-b space-y-4 md:space-y-0 md:flex-row md:items-center md:justify-between p-6">
-                    <div className="space-y-1.5">
-                        <CardTitle>Agenda de Serviços</CardTitle>
-                        <CardDescription>
-                            {appointments.length} agendamentos registrados.
-                        </CardDescription>
+        return (
+            <div className="p-8 space-y-8 h-full flex flex-col">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h2 className="text-3xl font-bold tracking-tight">Agendamentos</h2>
+                        <p className="text-muted-foreground">
+                            Gerencie as ordens de serviço e cronograma.
+                        </p>
                     </div>
-                    <div className="flex items-center space-x-2 w-full md:w-auto">
-                        <form className="relative flex items-center">
-                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                name="q"
-                                defaultValue={searchParams?.q}
-                                className="pl-9 w-[250px]"
-                                placeholder="Buscar cliente ou serviço..."
-                            />
+                    <div className="flex items-center space-x-2">
+                        <SchedulingConfigModal initialConfig={schedulingConfig} />
+                        <CreateAppointmentModal
+                            clients={clients}
+                            services={services}
+                            employees={employees}
+                        />
+                        <form action={async () => {
+                            "use server";
+                            const { checkAutoConfirmAppointments } = await import("@/actions/check-auto-confirm");
+                            if (session?.user?.tenantId) {
+                                await checkAutoConfirmAppointments(session.user.tenantId);
+                            }
+                        }}>
+                            <Button variant="outline" size="sm" type="submit">
+                                Check Auto-Confirm
+                            </Button>
                         </form>
                     </div>
-                </CardHeader>
-                <CardContent className="p-0 flex-1 overflow-auto">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Data / Hora</TableHead>
-                                <TableHead>Cliente</TableHead>
-                                <TableHead>Serviço</TableHead>
-                                <TableHead>Funcionário</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead className="w-[80px]"></TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {appointments.map((apt) => (
-                                <TableRow key={apt.id}>
-                                    <TableCell>
-                                        <div className="flex flex-col text-sm">
-                                            <span className="font-medium flex items-center">
-                                                <CalendarIcon className="w-3 h-3 mr-1 text-muted-foreground" />
-                                                {new Date(apt.startTime).toLocaleDateString()}
-                                            </span>
-                                            <span className="text-xs text-muted-foreground ml-4">
-                                                {new Date(apt.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex flex-col">
-                                            <span className="font-medium">{apt.customer.user.name ?? "Cliente Desconhecido"}</span>
-                                            <span className="text-xs text-muted-foreground flex items-center mt-0.5 truncate max-w-[150px]" title={apt.address}>
-                                                <MapPin className="w-3 h-3 mr-1" /> {apt.address}
-                                            </span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <span className="text-sm">
-                                            {apt.service.name}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell>
-                                        {apt.employee ? (
-                                            <div className="flex items-center">
-                                                <div
-                                                    className="h-2 w-2 rounded-full mr-2"
-                                                    style={{ backgroundColor: apt.employee.color || '#000' }}
-                                                />
-                                                <span className="text-sm">{apt.employee.user.name}</span>
-                                            </div>
-                                        ) : (
-                                            <span className="text-xs text-muted-foreground italic">Não atribuído</span>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        {getStatusBadge(apt.status)}
-                                    </TableCell>
-                                    <TableCell>
-                                        <AppointmentActions
-                                            appointment={{
-                                                ...apt,
-                                                price: Number(apt.price),
-                                                service: {
-                                                    ...apt.service,
-                                                    price: Number(apt.service.price)
-                                                }
-                                            }}
-                                            clients={clients}
-                                            services={services}
-                                            employees={employees}
-                                        />
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                            {appointments.length === 0 && (
+                </div>
+
+                <Card className="flex-1 overflow-hidden flex flex-col border-violet-100 dark:border-violet-900/20">
+                    <CardHeader className="border-b space-y-4 md:space-y-0 md:flex-row md:items-center md:justify-between p-6">
+                        <div className="space-y-1.5">
+                            <CardTitle>Agenda de Serviços</CardTitle>
+                            <CardDescription>
+                                {appointments.length} agendamentos registrados.
+                            </CardDescription>
+                        </div>
+                        <div className="flex items-center space-x-2 w-full md:w-auto">
+                            <form className="relative flex items-center">
+                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    name="q"
+                                    defaultValue={searchParams?.q}
+                                    className="pl-9 w-[250px]"
+                                    placeholder="Buscar cliente ou serviço..."
+                                />
+                            </form>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-0 flex-1 overflow-auto">
+                        <Table>
+                            <TableHeader>
                                 <TableRow>
-                                    <TableCell colSpan={6} className="h-24 text-center">
-                                        Nenhum agendamento encontrado.
-                                    </TableCell>
+                                    <TableHead>Data / Hora</TableHead>
+                                    <TableHead>Cliente</TableHead>
+                                    <TableHead>Serviço</TableHead>
+                                    <TableHead>Funcionário</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead className="w-[80px]"></TableHead>
                                 </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-        </div>
-    );
+                            </TableHeader>
+                            <TableBody>
+                                {appointments.map((apt: any) => (
+                                    <TableRow key={apt.id}>
+                                        <TableCell>
+                                            <div className="flex flex-col text-sm">
+                                                <span className="font-medium flex items-center">
+                                                    <CalendarIcon className="w-3 h-3 mr-1 text-muted-foreground" />
+                                                    {new Date(apt.startTime).toLocaleDateString()}
+                                                </span>
+                                                <span className="text-xs text-muted-foreground ml-4">
+                                                    {new Date(apt.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col">
+                                                <span className="font-medium">{apt.customer.user.name ?? "Cliente Desconhecido"}</span>
+                                                <span className="text-xs text-muted-foreground flex items-center mt-0.5 truncate max-w-[150px]" title={apt.address}>
+                                                    <MapPin className="w-3 h-3 mr-1" /> {apt.address}
+                                                </span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="text-sm">
+                                                {apt.service.name}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell>
+                                            {apt.employee ? (
+                                                <div className="flex items-center">
+                                                    <div
+                                                        className="h-2 w-2 rounded-full mr-2"
+                                                        style={{ backgroundColor: apt.employee.color || '#000' }}
+                                                    />
+                                                    <span className="text-sm">{apt.employee.user.name}</span>
+                                                </div>
+                                            ) : (
+                                                <span className="text-xs text-muted-foreground italic">Não atribuído</span>
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            {getStatusBadge(apt.status)}
+                                        </TableCell>
+                                        <TableCell>
+                                            <AppointmentActions
+                                                appointment={{
+                                                    ...apt,
+                                                    price: Number(apt.price),
+                                                    service: {
+                                                        ...apt.service,
+                                                        price: Number(apt.service.price)
+                                                    }
+                                                }}
+                                                clients={clients}
+                                                services={services}
+                                                employees={employees}
+                                            />
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                {appointments.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="h-24 text-center">
+                                            Nenhum agendamento encontrado.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    } catch (error: any) {
+        console.error("Appointments Page Error:", error);
+        return (
+            <div className="p-8">
+                <Card className="border-red-200 bg-red-50">
+                    <CardHeader>
+                        <CardTitle className="text-red-600 italic font-black uppercase tracking-tight">Erro ao carregar agendamentos</CardTitle>
+                        <CardDescription>Ocorreu um problema ao recuperar os dados da agenda.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="p-4 bg-white rounded border border-red-100 font-mono text-xs break-all text-red-800">
+                            {error?.message || "Erro desconhecido"}
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
 }
