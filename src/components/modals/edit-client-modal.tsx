@@ -47,13 +47,43 @@ export function EditClientModal({ client }: EditClientModalProps) {
     // Parse existing details if available
     const existingDetails = client.customerProfile?.frequencyDetails ? JSON.parse(client.customerProfile.frequencyDetails) : {};
     const [selectedDays, setSelectedDays] = useState<string[]>(Array.isArray(existingDetails.days) ? existingDetails.days : []);
-    const [startTime, setStartTime] = useState(existingDetails.startTime || "");
-    const [endTime, setEndTime] = useState(existingDetails.endTime || "");
+
+    // Novo estado para configurações pro dia (mapeamento de ID do dia -> {startTime, endTime})
+    // Se vier do formato antigo (startTime/endTime globais), migramos.
+    const initialDaySettings: Record<string, { startTime: string; endTime: string }> = existingDetails.daySettings || {};
+    if (!existingDetails.daySettings && (existingDetails.startTime || existingDetails.endTime)) {
+        selectedDays.forEach(dayId => {
+            initialDaySettings[dayId] = {
+                startTime: existingDetails.startTime || "",
+                endTime: existingDetails.endTime || ""
+            };
+        });
+    }
+    const [daySettings, setDaySettings] = useState(initialDaySettings);
 
     const handleDayToggle = (dayId: string) => {
-        setSelectedDays(prev =>
-            prev.includes(dayId) ? prev.filter(d => d !== dayId) : [...prev, dayId]
-        );
+        setSelectedDays(prev => {
+            const isSelected = prev.includes(dayId);
+            if (isSelected) {
+                const newDays = prev.filter(d => d !== dayId);
+                const newSettings = { ...daySettings };
+                delete newSettings[dayId];
+                setDaySettings(newSettings);
+                return newDays;
+            } else {
+                return [...prev, dayId];
+            }
+        });
+    };
+
+    const handleTimeChange = (dayId: string, field: 'startTime' | 'endTime', value: string) => {
+        setDaySettings(prev => ({
+            ...prev,
+            [dayId]: {
+                ...prev[dayId],
+                [field]: value
+            }
+        }));
     };
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -72,8 +102,7 @@ export function EditClientModal({ client }: EditClientModalProps) {
             const details = {
                 timesPerWeek: formData.get("timesPerWeek"),
                 days: selectedDays,
-                startTime,
-                endTime
+                daySettings
             };
             formData.append("frequencyDetails", JSON.stringify(details));
         }
@@ -220,26 +249,37 @@ export function EditClientModal({ client }: EditClientModalProps) {
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="startTime">Horário de Início (Recorrente)</Label>
-                                            <Input
-                                                id="startTime"
-                                                type="time"
-                                                value={startTime}
-                                                onChange={(e) => setStartTime(e.target.value)}
-                                            />
+                                    {/* Configuração de Horários por Dia */}
+                                    {selectedDays.length > 0 && (
+                                        <div className="space-y-3 bg-muted/30 p-4 rounded-lg border">
+                                            <h4 className="text-xs font-semibold uppercase text-muted-foreground">Horários por Dia Escolhido</h4>
+                                            <div className="grid gap-4">
+                                                {WEEK_DAYS.filter(d => selectedDays.includes(d.id)).map((day) => (
+                                                    <div key={day.id} className="grid grid-cols-3 items-center gap-4 border-b pb-2 last:border-0 last:pb-0">
+                                                        <span className="text-sm font-medium">{day.label}</span>
+                                                        <div className="space-y-1">
+                                                            <Label className="text-[10px] uppercase">Início</Label>
+                                                            <Input
+                                                                type="time"
+                                                                className="h-8 text-xs"
+                                                                value={daySettings[day.id]?.startTime || ""}
+                                                                onChange={(e) => handleTimeChange(day.id, 'startTime', e.target.value)}
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <Label className="text-[10px] uppercase">Fim</Label>
+                                                            <Input
+                                                                type="time"
+                                                                className="h-8 text-xs"
+                                                                value={daySettings[day.id]?.endTime || ""}
+                                                                onChange={(e) => handleTimeChange(day.id, 'endTime', e.target.value)}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="endTime">Horário de Término (Recorrente)</Label>
-                                            <Input
-                                                id="endTime"
-                                                type="time"
-                                                value={endTime}
-                                                onChange={(e) => setEndTime(e.target.value)}
-                                            />
-                                        </div>
-                                    </div>
+                                    )}
                                 </div>
                             )}
 
