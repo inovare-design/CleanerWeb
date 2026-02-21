@@ -26,7 +26,7 @@ async function getClientData(userId: string) {
             where: {
                 customerId,
                 startTime: { gte: new Date() },
-                status: { in: ['PENDING', 'CONFIRMED'] }
+                status: { in: ['CONFIRMED', 'EN_ROUTE', 'IN_PROGRESS'] }
             },
             include: { service: true, employee: { include: { user: true } } },
             orderBy: { startTime: 'asc' }
