@@ -44,10 +44,15 @@ export default function LoginPage() {
                     if (data?.error) {
                         setError(data.error);
                     } else {
-                        // O Auth.js demora um pouco para atualizar a sessão no cliente 
-                        // após o login no servidor com redirect: false.
-                        // Usamos window.location para forçar o middleware a reprocessar e ir para o Dashboard.
-                        window.location.href = "/admin";
+                        // Redirect based on user role
+                        const role = data?.role;
+                        if (role === "CLIENT") {
+                            window.location.href = "/app";
+                        } else if (role === "CLEANER") {
+                            window.location.href = "/cleaner";
+                        } else {
+                            window.location.href = "/admin";
+                        }
                     }
                 });
         });
