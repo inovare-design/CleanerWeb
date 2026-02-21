@@ -138,44 +138,68 @@ export default async function AppointmentDetailPage(props: {
                 </CardContent>
             </Card>
 
-            {/* Visual Timeline */}
+            {/* Step-by-Step Progress */}
             {!isCancelled && (
                 <Card className="border-0 shadow-sm">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-black uppercase tracking-widest text-zinc-400">Progresso</CardTitle>
+                        <CardTitle className="text-sm font-black uppercase tracking-widest text-zinc-400">Progresso do Serviço</CardTitle>
                     </CardHeader>
                     <CardContent className="pb-6">
-                        <div className="flex items-center justify-between relative px-2">
-                            {/* Connector Line */}
-                            <div className="absolute top-5 left-8 right-8 h-0.5 bg-zinc-200" />
-                            <div
-                                className="absolute top-5 left-8 h-0.5 bg-blue-600 transition-all duration-700"
-                                style={{ width: `${Math.max(0, (currentStep / (timelineSteps.length - 1)) * 100 - 5)}%` }}
-                            />
-
+                        <div className="space-y-0">
                             {timelineSteps.map((step, index) => {
                                 const isActive = index <= currentStep;
                                 const isCurrent = index === currentStep;
                                 const StepIcon = step.icon;
 
+                                const descriptions: Record<string, string> = {
+                                    PENDING: "O seu agendamento foi registrado e está aguardando confirmação.",
+                                    CONFIRMED: "O administrador confirmou o seu serviço. Tudo pronto!",
+                                    EN_ROUTE: "O profissional está a caminho do local.",
+                                    IN_PROGRESS: "O serviço está sendo realizado agora.",
+                                    AWAITING_CONFIRMATION: "O profissional finalizou. Aguardando sua confirmação.",
+                                    COMPLETED: "Serviço concluído com sucesso!",
+                                };
+
                                 return (
-                                    <div key={step.status} className="flex flex-col items-center z-10 relative">
-                                        <div className={cn(
-                                            "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all",
-                                            isCurrent
-                                                ? "bg-blue-600 border-blue-600 text-white scale-110 shadow-lg shadow-blue-200"
-                                                : isActive
-                                                    ? "bg-blue-600 border-blue-600 text-white"
-                                                    : "bg-white border-zinc-200 text-zinc-300"
-                                        )}>
-                                            <StepIcon className={cn("w-4 h-4", isCurrent && step.status === "IN_PROGRESS" && "animate-spin")} />
+                                    <div key={step.status} className="flex gap-4">
+                                        {/* Left: Icon + Line */}
+                                        <div className="flex flex-col items-center">
+                                            <div className={cn(
+                                                "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all flex-shrink-0",
+                                                isCurrent
+                                                    ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200 scale-110"
+                                                    : isActive
+                                                        ? "bg-emerald-500 border-emerald-500 text-white"
+                                                        : "bg-white border-zinc-200 text-zinc-300"
+                                            )}>
+                                                {isActive && !isCurrent ? (
+                                                    <CheckCircle2 className="w-5 h-5" />
+                                                ) : (
+                                                    <StepIcon className={cn("w-4 h-4", isCurrent && step.status === "IN_PROGRESS" && "animate-spin")} />
+                                                )}
+                                            </div>
+                                            {index < timelineSteps.length - 1 && (
+                                                <div className={cn(
+                                                    "w-0.5 flex-1 min-h-[32px]",
+                                                    index < currentStep ? "bg-emerald-400" : "bg-zinc-200"
+                                                )} />
+                                            )}
                                         </div>
-                                        <span className={cn(
-                                            "text-[10px] font-bold mt-2 text-center",
-                                            isActive ? "text-zinc-900" : "text-zinc-300"
-                                        )}>
-                                            {step.label}
-                                        </span>
+                                        {/* Right: Text */}
+                                        <div className={cn("pb-6", index === timelineSteps.length - 1 && "pb-0")}>
+                                            <p className={cn(
+                                                "font-bold text-sm",
+                                                isCurrent ? "text-blue-600" : isActive ? "text-zinc-900" : "text-zinc-300"
+                                            )}>
+                                                {step.label}
+                                            </p>
+                                            <p className={cn(
+                                                "text-xs mt-0.5 leading-relaxed",
+                                                isCurrent ? "text-blue-500" : isActive ? "text-zinc-500" : "text-zinc-300"
+                                            )}>
+                                                {descriptions[step.status]}
+                                            </p>
+                                        </div>
                                     </div>
                                 );
                             })}

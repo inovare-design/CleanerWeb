@@ -162,6 +162,49 @@ export default async function ClientDashboard() {
                                 )}
                             </div>
                         </div>
+
+                        {/* Step-by-Step Progress */}
+                        <div className="mt-5 pt-5 border-t border-blue-100">
+                            {(() => {
+                                const steps = [
+                                    { key: "PENDING", label: "Agendado", desc: "Reserva registada" },
+                                    { key: "CONFIRMED", label: "Confirmado", desc: "Aprovado pelo admin" },
+                                    { key: "IN_PROGRESS", label: "Em Andamento", desc: "Serviço a decorrer" },
+                                    { key: "COMPLETED", label: "Concluído", desc: "Trabalho finalizado" },
+                                ];
+                                const statusMap: Record<string, number> = {
+                                    PENDING: 0, CONFIRMED: 1, EN_ROUTE: 2, IN_PROGRESS: 2,
+                                    AWAITING_CONFIRMATION: 3, COMPLETED: 3
+                                };
+                                const current = statusMap[data.nextAppointment.status] ?? 0;
+                                return (
+                                    <div className="flex items-center gap-0">
+                                        {steps.map((step, i) => {
+                                            const isDone = i < current;
+                                            const isCurrent = i === current;
+                                            return (
+                                                <div key={step.key} className="flex items-center flex-1">
+                                                    <div className="flex flex-col items-center flex-1">
+                                                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black border-2 transition-all ${isDone ? "bg-emerald-500 border-emerald-500 text-white"
+                                                                : isCurrent ? "bg-blue-600 border-blue-600 text-white scale-110 shadow-md shadow-blue-200"
+                                                                    : "bg-white border-zinc-200 text-zinc-300"
+                                                            }`}>
+                                                            {isDone ? "✓" : i + 1}
+                                                        </div>
+                                                        <span className={`text-[9px] font-bold mt-1 text-center leading-tight ${isDone ? "text-emerald-600" : isCurrent ? "text-blue-600" : "text-zinc-300"
+                                                            }`}>{step.label}</span>
+                                                    </div>
+                                                    {i < steps.length - 1 && (
+                                                        <div className={`h-0.5 flex-1 -mx-1 mt-[-14px] ${i < current ? "bg-emerald-400" : "bg-zinc-200"
+                                                            }`} />
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                );
+                            })()}
+                        </div>
                     </CardContent>
                 </Card>
             ) : (
