@@ -7,18 +7,20 @@ import { Button } from "@/components/ui/button";
 import {
     Calendar, Clock, User, MapPin, Star, ChevronLeft,
     CheckCircle2, Circle, Truck, Loader2, XCircle, FileText,
-    Navigation, Camera, MessageSquare, AlertTriangle, StickyNote
+    Navigation, Camera, MessageSquare, AlertTriangle, StickyNote, ClipboardCheck
 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { ConfirmServiceForm } from "@/components/client/confirm-service-form";
 
 const timelineSteps = [
     { status: "PENDING", label: "Agendado", icon: Calendar },
     { status: "CONFIRMED", label: "Confirmado", icon: CheckCircle2 },
     { status: "EN_ROUTE", label: "A Caminho", icon: Truck },
     { status: "IN_PROGRESS", label: "Em Andamento", icon: Loader2 },
+    { status: "AWAITING_CONFIRMATION", label: "Aguardando", icon: ClipboardCheck },
     { status: "COMPLETED", label: "Concluído", icon: CheckCircle2 },
 ];
 
@@ -59,6 +61,8 @@ export default async function AppointmentDetailPage(props: {
     const isCancelled = appointment.status === "CANCELLED";
     const isLive = ["EN_ROUTE", "IN_PROGRESS"].includes(appointment.status);
     const isCompleted = appointment.status === "COMPLETED";
+    const isAwaitingConfirmation = appointment.status === "AWAITING_CONFIRMATION";
+    const existingFeedback = appointment.feedbacks?.[0];
     const duration = appointment.customDuration || appointment.service.durationMin || 60;
     const hours = Math.floor(duration / 60);
     const minutes = duration % 60;
@@ -213,6 +217,42 @@ export default async function AppointmentDetailPage(props: {
                                 </div>
                             </div>
                         </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Client Confirmation Form */}
+            {isAwaitingConfirmation && (
+                <ConfirmServiceForm appointmentId={appointment.id} />
+            )}
+
+            {/* Existing Feedback (when already confirmed) */}
+            {isCompleted && existingFeedback && (
+                <Card className="border-0 shadow-sm bg-emerald-50/30">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-black uppercase tracking-widest text-emerald-600 flex items-center gap-2">
+                            <Star className="w-4 h-4" />
+                            Sua Avaliação
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pb-5">
+                        <div className="flex items-center gap-1 mb-2">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                                <Star
+                                    key={star}
+                                    className={cn(
+                                        "w-5 h-5",
+                                        star <= existingFeedback.rating
+                                            ? "text-amber-400 fill-amber-400"
+                                            : "text-zinc-200"
+                                    )}
+                                />
+                            ))}
+                            <span className="text-sm font-bold text-amber-600 ml-2">{existingFeedback.rating}/5</span>
+                        </div>
+                        {existingFeedback.comment && (
+                            <p className="text-sm text-zinc-600 italic">"{existingFeedback.comment}"</p>
+                        )}
                     </CardContent>
                 </Card>
             )}

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
     Clock,
     MapPin,
@@ -11,10 +12,14 @@ import {
     Play,
     CheckCircle2,
     AlertCircle,
-    Loader2
+    Loader2,
+    Camera,
+    Plus,
+    Image as ImageIcon
 } from "lucide-react";
 import { updateStaffLocation } from "@/actions/update-staff-location";
 import { updateAppointmentStatus } from "@/actions/update-appointment-status";
+import { addProofImages } from "@/actions/add-proof-images";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -25,13 +30,16 @@ interface Appointment {
     endTime: string;
     status: string;
     address: string;
+    proofImages: string[];
     service: { name: string };
     customer: { user: { name: string } };
 }
 
 export function CleanerDashboardClient({ appointments }: { appointments: Appointment[] }) {
-    const [isTracking, setIsTracking] = useState(false);
     const [loadingAptId, setLoadingAptId] = useState<string | null>(null);
+    const [photoUrl, setPhotoUrl] = useState<Record<string, string>>({});
+    const [addingPhoto, setAddingPhoto] = useState<string | null>(null);
+    const [showPhotoInput, setShowPhotoInput] = useState<Record<string, boolean>>({});
 
     // Enviar localização periodicamente
     useEffect(() => {
@@ -56,8 +64,7 @@ export function CleanerDashboardClient({ appointments }: { appointments: Appoint
                 }
             };
 
-            sendLocation(); // Primeira vez imediato
-            // 15s se estiver em deslocamento, 45s se estiver trabalhando
+            sendLocation();
             const frequency = isEnRoute ? 15000 : 45000;
             interval = setInterval(sendLocation, frequency);
         }
@@ -78,14 +85,18 @@ export function CleanerDashboardClient({ appointments }: { appointments: Appoint
             } else if (currentStatus === "EN_ROUTE") {
                 nextStatus = "IN_PROGRESS";
             } else if (currentStatus === "IN_PROGRESS") {
-                nextStatus = "COMPLETED";
+                nextStatus = "AWAITING_CONFIRMATION";
             }
 
             if (nextStatus) {
                 const res = await updateAppointmentStatus(aptId, nextStatus as any);
                 if (res.success) {
-                    toast.success(`Status atualizado para: ${nextStatus}`);
-                    router.refresh(); // Atualiza os dados da página (server components)
+                    toast.success(
+                        nextStatus === "AWAITING_CONFIRMATION"
+                            ? "Serviço finalizado! Aguardando confirmação do cliente."
+                            : `Status atualizado para: ${nextStatus}`
+                    );
+                    router.refresh();
                 } else {
                     toast.error(res.error);
                 }
@@ -95,12 +106,34 @@ export function CleanerDashboardClient({ appointments }: { appointments: Appoint
         }
     };
 
+    const handleAddPhoto = async (aptId: string) => {
+        const url = photoUrl[aptId]?.trim();
+        if (!url) {
+            toast.error("Insira a URL da foto.");
+            return;
+        }
+
+        setAddingPhoto(aptId);
+        try {
+            const res = await addProofImages(aptId, [url]);
+            if (res.success) {
+                toast.success("Foto adicionada!");
+                setPhotoUrl(prev => ({ ...prev, [aptId]: "" }));
+                router.refresh();
+            } else {
+                toast.error(res.error);
+            }
+        } finally {
+            setAddingPhoto(null);
+        }
+    };
+
     if (appointments.length === 0) {
         return (
             <Card className="border-dashed border-2 py-12 text-center">
                 <CardContent className="space-y-4">
                     <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mx-auto text-zinc-400">
-                        <Calendar className="w-8 h-8" />
+                        <CalendarIcon className="w-8 h-8" />
                     </div>
                     <div>
                         <h3 className="text-lg font-bold">Sem agendamentos hoje</h3>
@@ -117,7 +150,8 @@ export function CleanerDashboardClient({ appointments }: { appointments: Appoint
                 <Card key={apt.id} className={cn(
                     "overflow-hidden transition-all duration-300",
                     apt.status === "IN_PROGRESS" && "ring-2 ring-blue-500 shadow-lg",
-                    apt.status === "COMPLETED" && "opacity-60"
+                    apt.status === "AWAITING_CONFIRMATION" && "ring-2 ring-amber-400 shadow-md",
+                    (apt.status === "COMPLETED") && "opacity-60"
                 )}>
                     <CardHeader className="pb-3 border-b bg-zinc-50/50">
                         <div className="flex items-center justify-between">
@@ -134,11 +168,13 @@ export function CleanerDashboardClient({ appointments }: { appointments: Appoint
                                 apt.status === "CONFIRMED" && "bg-blue-100 text-blue-700",
                                 apt.status === "EN_ROUTE" && "bg-amber-100 text-amber-700 animate-pulse",
                                 apt.status === "IN_PROGRESS" && "bg-emerald-100 text-emerald-700",
+                                apt.status === "AWAITING_CONFIRMATION" && "bg-orange-100 text-orange-700",
                                 apt.status === "COMPLETED" && "bg-zinc-100 text-zinc-600"
                             )}>
                                 {apt.status === "CONFIRMED" && "Pendente"}
                                 {apt.status === "EN_ROUTE" && "A Caminho"}
                                 {apt.status === "IN_PROGRESS" && "Em Execução"}
+                                {apt.status === "AWAITING_CONFIRMATION" && "Aguardando Cliente"}
                                 {apt.status === "COMPLETED" && "Finalizado"}
                             </Badge>
                         </div>
@@ -169,7 +205,68 @@ export function CleanerDashboardClient({ appointments }: { appointments: Appoint
                             </div>
                         </div>
 
-                        {apt.status !== "COMPLETED" && (
+                        {/* Proof Photos Section - visible during IN_PROGRESS and AWAITING_CONFIRMATION */}
+                        {(apt.status === "IN_PROGRESS" || apt.status === "AWAITING_CONFIRMATION") && (
+                            <div className="border-t pt-4 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Camera className="w-4 h-4 text-zinc-500" />
+                                        <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                                            Fotos ({apt.proofImages?.length || 0})
+                                        </span>
+                                    </div>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 text-xs text-blue-600 font-bold gap-1"
+                                        onClick={() => setShowPhotoInput(prev => ({
+                                            ...prev,
+                                            [apt.id]: !prev[apt.id]
+                                        }))}
+                                    >
+                                        <Plus className="w-3 h-3" />
+                                        Adicionar
+                                    </Button>
+                                </div>
+
+                                {/* Existing photos thumbnails */}
+                                {apt.proofImages && apt.proofImages.length > 0 && (
+                                    <div className="flex gap-2 overflow-x-auto pb-1">
+                                        {apt.proofImages.map((img: string, i: number) => (
+                                            <div key={i} className="w-16 h-16 rounded-lg overflow-hidden bg-zinc-100 flex-shrink-0 ring-1 ring-zinc-200">
+                                                <img src={img} alt={`Foto ${i + 1}`} className="w-full h-full object-cover" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Add photo input */}
+                                {showPhotoInput[apt.id] && (
+                                    <div className="flex gap-2">
+                                        <Input
+                                            placeholder="URL da foto..."
+                                            value={photoUrl[apt.id] || ""}
+                                            onChange={e => setPhotoUrl(prev => ({ ...prev, [apt.id]: e.target.value }))}
+                                            className="h-10 rounded-lg text-sm"
+                                        />
+                                        <Button
+                                            size="sm"
+                                            className="h-10 px-4 bg-blue-600 hover:bg-blue-700 rounded-lg font-bold"
+                                            disabled={addingPhoto === apt.id}
+                                            onClick={() => handleAddPhoto(apt.id)}
+                                        >
+                                            {addingPhoto === apt.id ? (
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                            ) : (
+                                                <ImageIcon className="w-4 h-4" />
+                                            )}
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {apt.status !== "COMPLETED" && apt.status !== "AWAITING_CONFIRMATION" && (
                             <div className="pt-2">
                                 <Button
                                     className={cn(
@@ -206,7 +303,7 @@ export function CleanerDashboardClient({ appointments }: { appointments: Appoint
     );
 }
 
-function Calendar(props: any) {
+function CalendarIcon(props: any) {
     return (
         <svg
             {...props}
