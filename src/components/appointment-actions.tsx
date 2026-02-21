@@ -12,12 +12,15 @@ import { Button } from "@/components/ui/button";
 import { MoreHorizontal, CheckCircle, XCircle, PlayCircle, Loader2, Edit } from "lucide-react";
 import { AppointmentStatus } from "@prisma/client";
 import { updateAppointmentStatus } from "@/actions/update-appointment-status";
+import { createManualInvoice } from "@/actions/manage-invoices";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { EditAppointmentModal } from "@/components/modals/edit-appointment-modal";
 import { FinishServiceModal } from "@/components/modals/finish-service-modal";
 import { processConfirmedAppointment } from "@/actions/process-confirmed-appointment";
 import { toast } from "sonner";
+import Link from "next/link";
+import { Receipt, ExternalLink } from "lucide-react";
 
 interface AppointmentActionsProps {
     appointment: any; // Using any for simplicity here to avoid deep type imports, or better, define shape
@@ -49,6 +52,22 @@ export function AppointmentActions({ appointment, clients, services, employees }
             router.refresh();
         } else {
             toast.error(result.error || "Erro ao confirmar.");
+        }
+    };
+
+    const handleCreateInvoice = async () => {
+        setIsLoading(true);
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + 7); // Default to 7 days
+
+        const result = await createManualInvoice(appointment.customerId, [appointment.id], dueDate);
+        setIsLoading(false);
+
+        if (result.success) {
+            toast.success(result.success);
+            router.refresh();
+        } else {
+            toast.error(result.error || "Erro ao gerar fatura.");
         }
     };
 
@@ -117,11 +136,20 @@ export function AppointmentActions({ appointment, clients, services, employees }
                         </>
                     )}
 
-                    {appointment.status === 'COMPLETED' && (
-                        <DropdownMenuItem disabled className="text-muted-foreground">
-                            <CheckCircle className="mr-2 h-4 w-4" /> Finalizado
+                    {appointment.status === 'COMPLETED' && !appointment.invoiceId && (
+                        <DropdownMenuItem onClick={handleCreateInvoice} className="text-blue-600 font-bold">
+                            <Receipt className="mr-2 h-4 w-4" /> Gerar Fatura iDEAL
                         </DropdownMenuItem>
                     )}
+
+                    {appointment.status === 'COMPLETED' && appointment.invoiceId && (
+                        <Link href={`/invoice/${appointment.invoiceId}`} target="_blank">
+                            <DropdownMenuItem className="text-emerald-600 font-bold">
+                                <ExternalLink className="mr-2 h-4 w-4" /> Ver Fatura Online
+                            </DropdownMenuItem>
+                        </Link>
+                    )}
+
                     {appointment.status === 'CANCELLED' && (
                         <DropdownMenuItem disabled className="text-muted-foreground">
                             <XCircle className="mr-2 h-4 w-4" /> Cancelado

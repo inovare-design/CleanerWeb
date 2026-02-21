@@ -7,6 +7,7 @@ import { DollarSign, TrendingUp, CreditCard, Receipt, Repeat, Clock } from "luci
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InvoiceList } from "@/components/finance/invoice-list";
 import { RecurringBillingManager } from "@/components/finance/recurring-manager";
+import { AppointmentInvoicer } from "@/components/finance/appointment-invoicer";
 
 async function getFinanceData(tenantId: string) {
     const [
@@ -189,7 +190,18 @@ export default async function FinancePage() {
                                                 </div>
                                                 <div className="text-right space-y-1">
                                                     <p className="font-black text-lg text-emerald-600">R$ {Number(t.price).toFixed(2)}</p>
-                                                    <p className="text-[10px] text-muted-foreground uppercase font-bold">{new Date(t.updatedAt).toLocaleDateString()}</p>
+                                                    <div className="flex flex-col items-end gap-1">
+                                                        <p className="text-[10px] text-muted-foreground uppercase font-bold">{new Date(t.updatedAt).toLocaleDateString()}</p>
+                                                        {!t.invoiceId && (
+                                                            <AppointmentInvoicer
+                                                                appointmentId={t.id}
+                                                                customerId={t.customerId}
+                                                            />
+                                                        )}
+                                                        {t.invoiceId && (
+                                                            <span className="text-[9px] font-black text-emerald-500 uppercase bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">Faturado</span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}
