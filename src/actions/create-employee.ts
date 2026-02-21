@@ -39,6 +39,7 @@ export async function createEmployee(formData: FormData) {
     }
 
     const { name, email, password, phone, color } = validatedFields.data;
+    const profileId = formData.get("profileId") as string;
 
     try {
         const existingUser = await db.user.findUnique({
@@ -58,6 +59,7 @@ export async function createEmployee(formData: FormData) {
                 password: hashedPassword,
                 role: "CLEANER",
                 tenantId: tenantId,
+                profileId: profileId === "DEFAULT" ? null : profileId,
                 employeeProfile: {
                     create: {
                         phone,

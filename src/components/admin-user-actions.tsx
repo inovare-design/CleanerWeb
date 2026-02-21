@@ -10,8 +10,8 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Key, UserCog, Trash2 } from "lucide-react";
-import { deleteAdminUser, updateAdminRole } from "@/actions/manage-admins";
+import { MoreHorizontal, Key, UserCog, Trash2, ShieldCheck, UserCircle } from "lucide-react";
+import { deleteAdminUser, updateAdminRole, updateUserProfile } from "@/actions/manage-admins";
 import { resetAdminPassword } from "@/actions/reset-admin-password";
 import { Role } from "@prisma/client";
 
@@ -19,10 +19,20 @@ interface AdminUserActionsProps {
     userId: string;
     currentRole: string;
     isSelf: boolean;
+    profiles: any[];
+    currentProfileId?: string | null;
 }
 
-export function AdminUserActions({ userId, currentRole, isSelf }: AdminUserActionsProps) {
+export function AdminUserActions({ userId, currentRole, isSelf, profiles, currentProfileId }: AdminUserActionsProps) {
     const [isLoading, setIsLoading] = useState(false);
+
+    async function onUpdateProfile(profileId: string | null) {
+        if (!confirm("Alterar perfil de acesso deste usuário?")) return;
+        setIsLoading(true);
+        await updateUserProfile(userId, profileId);
+        setIsLoading(false);
+    }
+    // ... rest of the functions
 
     async function onDelete() {
         if (!confirm("Tem certeza que deseja excluir este administrador?")) return;
@@ -64,9 +74,30 @@ export function AdminUserActions({ userId, currentRole, isSelf }: AdminUserActio
                 <DropdownMenuItem onClick={onResetPassword}>
                     <Key className="mr-2 h-4 w-4" /> <span>Resetar Senha</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={onToggleRole}>
-                    <UserCog className="mr-2 h-4 w-4" /> <span>Mudar Cargo</span>
+
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Perfil de Acesso</DropdownMenuLabel>
+                <DropdownMenuItem
+                    onClick={() => onUpdateProfile(null)}
+                    className={!currentProfileId ? "bg-zinc-100" : ""}
+                >
+                    <UserCircle className="mr-2 h-4 w-4" /> <span>Padrão (ADMIN)</span>
                 </DropdownMenuItem>
+                {profiles.map((profile) => (
+                    <DropdownMenuItem
+                        key={profile.id}
+                        onClick={() => onUpdateProfile(profile.id)}
+                        className={currentProfileId === profile.id ? "bg-zinc-100" : ""}
+                    >
+                        <ShieldCheck className="mr-2 h-4 w-4" /> <span>{profile.name}</span>
+                    </DropdownMenuItem>
+                ))}
+
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={onToggleRole}>
+                    <UserCog className="mr-2 h-4 w-4" /> <span>Mudar Cargo ({currentRole})</span>
+                </DropdownMenuItem>
+
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                     onClick={onDelete}

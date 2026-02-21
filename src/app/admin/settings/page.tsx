@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { updateTenantSettings } from "@/actions/update-tenant-settings";
 import { CreateAdminModal } from "@/components/modals/create-admin-modal";
 import { AdminUserActions } from "@/components/admin-user-actions";
+import { CreateProfileModal, ProfileList } from "@/components/settings/profile-management";
 
 export default async function SettingsPage() {
     const session = await auth();
@@ -21,9 +22,13 @@ export default async function SettingsPage() {
         where: { id: session.user.tenantId! },
         include: {
             schedulingConfig: true,
+            profiles: true,
             users: {
                 where: {
                     role: { in: ["ADMIN", "SUPER_ADMIN"] }
+                },
+                include: {
+                    profile: true
                 }
             }
         }
@@ -37,17 +42,24 @@ export default async function SettingsPage() {
         </div>
     );
 
+    const adminProfiles = tenant.profiles.filter((p: any) => p.type === "ADMIN");
+    const staffProfiles = tenant.profiles.filter((p: any) => p.type === "STAFF");
+
     return (
         <div className="flex-1 space-y-4 p-8 pt-6">
             <div className="flex items-center justify-between space-y-2">
-                <h2 className="text-3xl font-bold tracking-tight">Configurações</h2>
+                <h2 className="text-3xl font-bold tracking-tight italic uppercase">Configurações</h2>
             </div>
 
+            {/* Rest of the file ... I'll use replace_file_content for specific blocks */}
+
             <Tabs defaultValue="general" className="space-y-4">
-                <TabsList>
-                    <TabsTrigger value="general">Geral</TabsTrigger>
-                    <TabsTrigger value="team">Equipe Admin</TabsTrigger>
-                    <TabsTrigger value="payments">Pagamentos & IDEAL</TabsTrigger>
+                <TabsList className="flex flex-wrap h-auto p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl">
+                    <TabsTrigger value="general" className="rounded-lg px-4 py-2 font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">Geral</TabsTrigger>
+                    <TabsTrigger value="team" className="rounded-lg px-4 py-2 font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">Equipe Admin</TabsTrigger>
+                    <TabsTrigger value="profiles-admin" className="rounded-lg px-4 py-2 font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">Perfis Admin</TabsTrigger>
+                    <TabsTrigger value="profiles-staff" className="rounded-lg px-4 py-2 font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">Perfis Equipe (Cleaners)</TabsTrigger>
+                    <TabsTrigger value="payments" className="rounded-lg px-4 py-2 font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">Pagamentos & IDEAL</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="general" className="space-y-4">
@@ -97,7 +109,7 @@ export default async function SettingsPage() {
                                     Gerencie quem tem acesso ao painel administrativo.
                                 </CardDescription>
                             </div>
-                            <CreateAdminModal />
+                            <CreateAdminModal profiles={adminProfiles} />
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
@@ -113,21 +125,30 @@ export default async function SettingsPage() {
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-200">
-                                            {tenant.users.map((user) => (
+                                            {tenant.users.map((user: any) => (
                                                 <tr key={user.id}>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.name}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 uppercase font-bold tracking-tight">{user.name}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center uppercase">{user.name?.substring(0, 2)}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${user.role === "SUPER_ADMIN" ? "bg-purple-100 text-purple-800" : "bg-blue-100 text-blue-800"}`}>
-                                                            {user.role}
-                                                        </span>
+                                                        <div className="flex flex-col">
+                                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium w-fit ${user.role === "SUPER_ADMIN" ? "bg-purple-100 text-purple-800" : "bg-blue-100 text-blue-800"}`}>
+                                                                {user.role}
+                                                            </span>
+                                                            {user.profile && (
+                                                                <span className="text-[10px] text-zinc-500 mt-1 uppercase font-medium">
+                                                                    Perfil: {user.profile.name}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                         <AdminUserActions
                                                             userId={user.id}
                                                             currentRole={user.role}
                                                             isSelf={user.id === session.user.id}
+                                                            profiles={adminProfiles}
+                                                            currentProfileId={user.profileId}
                                                         />
                                                     </td>
                                                 </tr>
@@ -136,6 +157,40 @@ export default async function SettingsPage() {
                                     </table>
                                 </div>
                             </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="profiles-admin" className="space-y-4">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <div>
+                                <CardTitle>Perfis de Administrador</CardTitle>
+                                <CardDescription>
+                                    Defina tipos de cargos com poderes personalizados.
+                                </CardDescription>
+                            </div>
+                            <CreateProfileModal type="ADMIN" />
+                        </CardHeader>
+                        <CardContent>
+                            <ProfileList profiles={adminProfiles} type="ADMIN" />
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="profiles-staff" className="space-y-4">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <div>
+                                <CardTitle>Perfis de Equipe (Cleaners)</CardTitle>
+                                <CardDescription>
+                                    Crie pacotes de permissões para quem está em campo.
+                                </CardDescription>
+                            </div>
+                            <CreateProfileModal type="STAFF" />
+                        </CardHeader>
+                        <CardContent>
+                            <ProfileList profiles={staffProfiles} type="STAFF" />
                         </CardContent>
                     </Card>
                 </TabsContent>

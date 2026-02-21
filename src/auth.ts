@@ -58,13 +58,19 @@ export const {
             }
 
             if (token.role && session.user) {
-                // @ts-ignore
-                session.user.role = token.role;
+                session.user.role = token.role as any;
             }
 
             if (token.tenantId && session.user) {
-                // @ts-ignore
-                session.user.tenantId = token.tenantId;
+                session.user.tenantId = token.tenantId as any;
+            }
+
+            if (token.profileId && session.user) {
+                session.user.profileId = token.profileId as any;
+            }
+
+            if (token.tenantSlug && session.user) {
+                session.user.tenantSlug = token.tenantSlug as any;
             }
 
             return session;
@@ -73,13 +79,16 @@ export const {
             if (!token.sub) return token;
 
             const existingUser = await prisma.user.findUnique({
-                where: { id: token.sub }
-            });
+                where: { id: token.sub },
+                include: { tenant: true }
+            }) as any;
 
             if (!existingUser) return token;
 
             token.role = existingUser.role;
             token.tenantId = existingUser.tenantId;
+            token.profileId = existingUser.profileId;
+            token.tenantSlug = existingUser.tenant?.slug;
 
             return token;
         }

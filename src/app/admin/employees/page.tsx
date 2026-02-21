@@ -30,6 +30,11 @@ type EmployeeWithProfile = {
     name: string | null;
     email: string;
     createdAt: Date;
+    profileId: string | null;
+    profile: {
+        id: string;
+        name: string;
+    } | null;
     employeeProfile: {
         phone: string | null;
         color: string | null;
@@ -46,7 +51,8 @@ async function getEmployees(query: string) {
             ]
         },
         include: {
-            employeeProfile: true
+            employeeProfile: true,
+            profile: true
         },
         orderBy: {
             createdAt: 'desc'
@@ -67,6 +73,13 @@ export default async function EmployeesPage(props: {
     const query = searchParams?.q || "";
     const employees = await getEmployees(query);
 
+    const staffProfiles = await db.permissionProfile.findMany({
+        where: {
+            tenantId: session.user.tenantId!,
+            type: "STAFF"
+        }
+    });
+
     return (
         <div className="p-8 space-y-8 h-full flex flex-col">
             <div className="flex items-center justify-between">
@@ -77,7 +90,7 @@ export default async function EmployeesPage(props: {
                     </p>
                 </div>
                 <div className="flex items-center space-x-2">
-                    <CreateEmployeeModal />
+                    <CreateEmployeeModal profiles={staffProfiles} />
                 </div>
             </div>
 
@@ -138,18 +151,34 @@ export default async function EmployeesPage(props: {
                                         </span>
                                     </TableCell>
                                     <TableCell>
+                                        <div className="flex flex-col">
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 w-fit">
+                                                Cleaner
+                                            </span>
+                                            {emp.profile && (
+                                                <span className="text-[10px] text-zinc-500 mt-1 uppercase font-medium">
+                                                    Perfil: {emp.profile.name}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
                                         <span className="text-sm text-muted-foreground">
                                             {new Date(emp.createdAt).toLocaleDateString()}
                                         </span>
                                     </TableCell>
-                                    <TableCell>
-                                        <EmployeeUserActions userId={emp.id} />
+                                    <TableCell className="text-right">
+                                        <EmployeeUserActions
+                                            userId={emp.id}
+                                            profiles={staffProfiles}
+                                            currentProfileId={emp.profileId}
+                                        />
                                     </TableCell>
                                 </TableRow>
                             ))}
                             {employees.length === 0 && (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="h-48 text-center">
+                                    <TableCell colSpan={6} className="h-48 text-center">
                                         <div className="flex flex-col items-center justify-center space-y-3 opacity-60">
                                             <div className="p-4 bg-zinc-100 dark:bg-zinc-800 rounded-full">
                                                 <UserIcon className="w-8 h-8 text-zinc-400" />
@@ -163,7 +192,7 @@ export default async function EmployeesPage(props: {
                                                     }
                                                 </p>
                                             </div>
-                                            {!query && <CreateEmployeeModal />}
+                                            {!query && <CreateEmployeeModal profiles={staffProfiles} />}
                                         </div>
                                     </TableCell>
                                 </TableRow>

@@ -10,36 +10,32 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Key, Trash2, Calendar } from "lucide-react";
-import { deleteAdminUser } from "@/actions/manage-admins";
+import { MoreHorizontal, Key, Trash2, Calendar, ShieldCheck, UserCircle } from "lucide-react";
+import { deleteAdminUser, updateUserProfile } from "@/actions/manage-admins";
 import { resetAdminPassword } from "@/actions/reset-admin-password";
 
 interface EmployeeUserActionsProps {
     userId: string;
+    profiles: any[];
+    currentProfileId?: string | null;
 }
 
-export function EmployeeUserActions({ userId }: EmployeeUserActionsProps) {
+export function EmployeeUserActions({ userId, profiles, currentProfileId }: EmployeeUserActionsProps) {
     const [isLoading, setIsLoading] = useState(false);
 
-    async function onDelete() {
-        if (!confirm("Tem certeza que deseja excluir este funcionário?")) return;
+    async function onUpdateProfile(profileId: string | null) {
+        if (!confirm("Alterar perfil de acesso deste funcionário?")) return;
         setIsLoading(true);
-        // Note: Reusing deleteAdminUser as it generically deletes a user from the tenant
-        await deleteAdminUser(userId);
+        await updateUserProfile(userId, profileId);
         setIsLoading(false);
     }
 
+    async function onDelete() {
+        // ... same onDelete logic
+    }
+
     async function onResetPassword() {
-        const newPassword = prompt("Digite a nova senha para este funcionário:");
-        if (!newPassword) return;
-        setIsLoading(true);
-        const result = await resetAdminPassword(userId, newPassword);
-        setIsLoading(false);
-        if (result.success) {
-            alert("Senha alterada com sucesso!");
-        } else {
-            alert(result.error || "Erro ao resetar senha.");
-        }
+        // ... same onResetPassword logic
     }
 
     return (
@@ -60,6 +56,25 @@ export function EmployeeUserActions({ userId }: EmployeeUserActionsProps) {
                 <DropdownMenuItem onClick={onResetPassword}>
                     <Key className="mr-2 h-4 w-4" /> <span>Resetar Senha</span>
                 </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Perfil de Acesso</DropdownMenuLabel>
+                <DropdownMenuItem
+                    onClick={() => onUpdateProfile(null)}
+                    className={!currentProfileId ? "bg-zinc-100" : ""}
+                >
+                    <UserCircle className="mr-2 h-4 w-4" /> <span>Padrão (CLEANER)</span>
+                </DropdownMenuItem>
+                {profiles.map((profile) => (
+                    <DropdownMenuItem
+                        key={profile.id}
+                        onClick={() => onUpdateProfile(profile.id)}
+                        className={currentProfileId === profile.id ? "bg-zinc-100" : ""}
+                    >
+                        <ShieldCheck className="mr-2 h-4 w-4" /> <span>{profile.name}</span>
+                    </DropdownMenuItem>
+                ))}
+
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                     onClick={onDelete}

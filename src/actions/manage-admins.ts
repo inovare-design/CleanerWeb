@@ -20,6 +20,7 @@ export async function createAdminUser(formData: FormData) {
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
     const role = formData.get("role") as Role;
+    const profileId = formData.get("profileId") as string;
 
     if (!["ADMIN", "SUPER_ADMIN"].includes(role)) {
         throw new Error("Invalid role selection.");
@@ -34,7 +35,8 @@ export async function createAdminUser(formData: FormData) {
                 email,
                 password: hashedPassword,
                 role,
-                tenantId
+                tenantId,
+                profileId: profileId === "DEFAULT" ? null : profileId
             }
         });
 
@@ -95,4 +97,24 @@ export async function updateAdminRole(userId: string, newRole: Role) {
         return { success: false, error: "Failed to update role." };
     }
 }
+export async function updateUserProfile(userId: string, profileId: string | null) {
+    const session = await auth();
 
+    if (!session?.user || (session.user.role as string) !== "SUPER_ADMIN") {
+        throw new Error("Unauthorized");
+    }
+
+    try {
+        await db.user.update({
+            where: { id: userId },
+            data: { profileId }
+        });
+
+        revalidatePath("/admin/settings");
+        revalidatePath("/admin/employees");
+        return { success: true };
+    } catch (error) {
+        console.error("Failed to update profile:", error);
+        return { success: false, error: "Failed to update profile." };
+    }
+}

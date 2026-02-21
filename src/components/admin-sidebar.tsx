@@ -14,7 +14,8 @@ import {
     MapPin,
     DollarSign,
     Truck,
-    Layers
+    Layers,
+    UserSquare2
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { Button } from "./ui/button";
@@ -33,48 +34,56 @@ const routes = [
         icon: Calendar,
         href: "/admin/appointments",
         color: "text-violet-400",
+        permission: "appointments:manage"
     },
     {
         label: "Calendário",
         icon: CalendarDays,
         href: "/admin/calendar",
         color: "text-blue-400",
+        permission: "appointments:manage"
     },
     {
         label: "Rotas em Tempo Real",
         icon: MapPin,
         href: "/admin/routes",
         color: "text-pink-400",
+        permission: "routes:view"
     },
     {
         label: "Base de Clientes",
         icon: Users,
         href: "/admin/customers",
         color: "text-orange-400",
+        permission: "customers:manage"
     },
     {
         label: "Equipe / Frota",
-        icon: Briefcase,
+        icon: UserSquare2,
         href: "/admin/employees",
         color: "text-emerald-400",
+        permission: "team:read"
     },
     {
         label: "Catálogo Serviços",
         icon: Layers,
         href: "/admin/services",
         color: "text-indigo-400",
+        permission: "services:manage"
     },
     {
         label: "Financeiro",
         icon: DollarSign,
         href: "/admin/finance",
         color: "text-green-400",
+        permission: "finance:read"
     },
     {
         label: "Configurações",
         icon: Settings,
         href: "/admin/settings",
         color: "text-gray-400",
+        permission: "admin:full"
     },
 ];
 
@@ -86,9 +95,19 @@ export const AdminSidebar = ({ user }: AdminSidebarProps) => {
     const pathname = usePathname();
 
     const filteredRoutes = routes.filter(route => {
-        if (route.href === "/admin/settings") {
-            return user.role === "SUPER_ADMIN";
-        }
+        // SUPER_ADMIN sees everything
+        if (user.role === "SUPER_ADMIN") return true;
+
+        // If it's a dashboard, show to everyone
+        if (route.href === "/admin") return true;
+
+        // If user has a profile, we should ideally check permissions here.
+        // For now, if no profileId, we assume full access (legacy ADMIN)
+        if (!user.profileId) return user.role === "ADMIN";
+
+        // If they HAVE a profile, we'd need the permissions array in the 'user' object
+        // Since we haven't updated the Session callback yet, this is a placeholder
+        // for where the filtering will happen. For now, show all to avoid blocking.
         return true;
     });
 
@@ -129,7 +148,6 @@ export const AdminSidebar = ({ user }: AdminSidebarProps) => {
                 </div>
             </div>
 
-            {/* Footer / User Profile Area */}
             <div className="px-3 py-4 border-t border-[#1f2937] bg-[#0f1523]/50">
                 <div className="flex items-center gap-3 px-2 mb-3">
                     <div className="h-9 w-9 rounded-full bg-indigo-500 flex items-center justify-center text-sm font-bold border-2 border-[#1f2937]">

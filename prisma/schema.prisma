@@ -30,20 +30,43 @@ model Tenant {
   schedulingConfig SchedulingConfig?
   services         Service[]
   users            User[]
+  profiles         PermissionProfile[]
 }
 
 model User {
-  id              String    @id @default(uuid())
+  id              String             @id @default(uuid())
   name            String?
-  email           String    @unique
+  email           String             @unique
   password        String
-  role            Role      @default(CLIENT)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  role            Role               @default(CLIENT)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
   tenantId        String?
+  profileId       String?
   customerProfile Customer?
   employeeProfile Employee?
-  tenant          Tenant?   @relation(fields: [tenantId], references: [id])
+  profile         PermissionProfile? @relation(fields: [profileId], references: [id])
+  tenant          Tenant?            @relation(fields: [tenantId], references: [id])
+}
+
+model PermissionProfile {
+  id          String      @id @default(uuid())
+  name        String
+  description String?
+  type        ProfileType @default(STAFF)
+  permissions String[] // Array of strings like "finance:manage", "team:read", etc.
+  tenantId    String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  tenant      Tenant      @relation(fields: [tenantId], references: [id])
+  users       User[]
+
+  @@unique([name, tenantId])
+}
+
+enum ProfileType {
+  ADMIN
+  STAFF
 }
 
 model Customer {
