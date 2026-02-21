@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { updateStaffLocation } from "@/actions/update-staff-location";
 import { updateAppointmentStatus } from "@/actions/update-appointment-status";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -36,7 +37,10 @@ export function CleanerDashboardClient({ appointments }: { appointments: Appoint
     useEffect(() => {
         let interval: NodeJS.Timeout;
 
-        if (isTracking) {
+        const hasActiveJob = appointments.some(a => a.status === "EN_ROUTE" || a.status === "IN_PROGRESS");
+        const isEnRoute = appointments.some(a => a.status === "EN_ROUTE");
+
+        if (hasActiveJob) {
             const sendLocation = () => {
                 if ("geolocation" in navigator) {
                     navigator.geolocation.getCurrentPosition(
@@ -53,13 +57,17 @@ export function CleanerDashboardClient({ appointments }: { appointments: Appoint
             };
 
             sendLocation(); // Primeira vez imediato
-            interval = setInterval(sendLocation, 30000); // A cada 30 segundos
+            // 15s se estiver em deslocamento, 45s se estiver trabalhando
+            const frequency = isEnRoute ? 15000 : 45000;
+            interval = setInterval(sendLocation, frequency);
         }
 
         return () => {
             if (interval) clearInterval(interval);
         };
-    }, [isTracking]);
+    }, [appointments]);
+
+    const router = useRouter();
 
     const handleAction = async (aptId: string, currentStatus: string) => {
         setLoadingAptId(aptId);
@@ -67,18 +75,17 @@ export function CleanerDashboardClient({ appointments }: { appointments: Appoint
             let nextStatus = "";
             if (currentStatus === "CONFIRMED") {
                 nextStatus = "EN_ROUTE";
-                setIsTracking(true); // Ativar rastreio ao iniciar deslocamento
             } else if (currentStatus === "EN_ROUTE") {
                 nextStatus = "IN_PROGRESS";
             } else if (currentStatus === "IN_PROGRESS") {
                 nextStatus = "COMPLETED";
-                setIsTracking(false); // Parar rastreio ao finalizar (ou manter se houver mais um)
             }
 
             if (nextStatus) {
                 const res = await updateAppointmentStatus(aptId, nextStatus as any);
                 if (res.success) {
                     toast.success(`Status atualizado para: ${nextStatus}`);
+                    router.refresh(); // Atualiza os dados da página (server components)
                 } else {
                     toast.error(res.error);
                 }
