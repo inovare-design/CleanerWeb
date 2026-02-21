@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { User, Home, LogOut, Save, Loader2, BedDouble, Bath, Ruler, Lock, Eye, EyeOff } from "lucide-react";
 import { updateClientProfile } from "@/actions/update-client-profile";
 import { changeClientPassword } from "@/actions/change-client-password";
@@ -31,6 +32,7 @@ export function ProfileForm({ user, customer }: ProfileFormProps) {
     const [saving, setSaving] = useState(false);
     const [changingPw, setChangingPw] = useState(false);
     const [showPw, setShowPw] = useState(false);
+    const [pwDialogOpen, setPwDialogOpen] = useState(false);
 
     async function handleSubmit(formData: FormData) {
         setSaving(true);
@@ -130,105 +132,117 @@ export function ProfileForm({ user, customer }: ProfileFormProps) {
                 </Button>
             </form>
 
-            {/* Password Change - separate form */}
-            <Card className="border-0 shadow-sm">
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-black uppercase tracking-widest text-zinc-400 flex items-center gap-2">
-                        <Lock className="w-4 h-4" />
-                        Alterar Senha
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="pb-6">
-                    <form
-                        action={async (formData) => {
-                            setChangingPw(true);
-                            try {
-                                const result = await changeClientPassword(formData);
-                                if (result.error) {
-                                    toast.error(result.error);
-                                } else {
-                                    toast.success(result.success);
-                                    const form = document.getElementById("pw-form") as HTMLFormElement;
-                                    form?.reset();
-                                }
-                            } catch {
-                                toast.error("Erro ao alterar senha.");
-                            } finally {
-                                setChangingPw(false);
-                            }
-                        }}
-                        id="pw-form"
-                        className="space-y-4"
-                    >
-                        <div className="space-y-2">
-                            <Label htmlFor="currentPassword" className="text-xs font-bold text-zinc-500">Senha Atual</Label>
-                            <div className="relative">
-                                <Input
-                                    id="currentPassword"
-                                    name="currentPassword"
-                                    type={showPw ? "text" : "password"}
-                                    placeholder="••••••••"
-                                    className="h-12 rounded-xl border-zinc-200 focus:border-blue-500 font-medium pr-12"
-                                    required
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPw(!showPw)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
-                                >
-                                    {showPw ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                                </button>
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="newPassword" className="text-xs font-bold text-zinc-500">Nova Senha</Label>
-                            <Input
-                                id="newPassword"
-                                name="newPassword"
-                                type="password"
-                                placeholder="Mínimo 6 caracteres"
-                                className="h-12 rounded-xl border-zinc-200 focus:border-blue-500 font-medium"
-                                required
-                                minLength={6}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="confirmPassword" className="text-xs font-bold text-zinc-500">Confirmar Nova Senha</Label>
-                            <Input
-                                id="confirmPassword"
-                                name="confirmPassword"
-                                type="password"
-                                placeholder="Repita a nova senha"
-                                className="h-12 rounded-xl border-zinc-200 focus:border-blue-500 font-medium"
-                                required
-                                minLength={6}
-                            />
-                        </div>
+            {/* Password Change + Logout buttons */}
+            <div className="flex gap-3">
+                <Dialog open={pwDialogOpen} onOpenChange={setPwDialogOpen}>
+                    <DialogTrigger asChild>
                         <Button
-                            type="submit"
-                            disabled={changingPw}
-                            className="w-full h-12 bg-zinc-900 hover:bg-zinc-800 font-bold gap-2 rounded-xl active:scale-[0.98] transition-all"
+                            type="button"
+                            variant="outline"
+                            className="flex-1 h-12 font-bold gap-2 rounded-xl border-zinc-200 hover:bg-zinc-50 active:scale-[0.98] transition-all"
                         >
-                            {changingPw ? (
-                                <><Loader2 className="w-4 h-4 animate-spin" /> Alterando...</>
-                            ) : (
-                                <><Lock className="w-4 h-4" /> Alterar Senha</>
-                            )}
+                            <Lock className="w-4 h-4" />
+                            Alterar Senha
                         </Button>
-                    </form>
-                </CardContent>
-            </Card>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md rounded-2xl">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2 text-lg font-black">
+                                <Lock className="w-5 h-5 text-blue-600" />
+                                Alterar Senha
+                            </DialogTitle>
+                            <DialogDescription>
+                                Digite sua senha atual e escolha uma nova senha.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <form
+                            action={async (formData) => {
+                                setChangingPw(true);
+                                try {
+                                    const result = await changeClientPassword(formData);
+                                    if (result.error) {
+                                        toast.error(result.error);
+                                    } else {
+                                        toast.success(result.success);
+                                        setPwDialogOpen(false);
+                                    }
+                                } catch {
+                                    toast.error("Erro ao alterar senha.");
+                                } finally {
+                                    setChangingPw(false);
+                                }
+                            }}
+                            className="space-y-4 pt-2"
+                        >
+                            <div className="space-y-2">
+                                <Label htmlFor="currentPassword" className="text-xs font-bold text-zinc-500">Senha Atual</Label>
+                                <div className="relative">
+                                    <Input
+                                        id="currentPassword"
+                                        name="currentPassword"
+                                        type={showPw ? "text" : "password"}
+                                        placeholder="••••••••"
+                                        className="h-12 rounded-xl border-zinc-200 focus:border-blue-500 font-medium pr-12"
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPw(!showPw)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+                                    >
+                                        {showPw ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="newPassword" className="text-xs font-bold text-zinc-500">Nova Senha</Label>
+                                <Input
+                                    id="newPassword"
+                                    name="newPassword"
+                                    type="password"
+                                    placeholder="Mínimo 6 caracteres"
+                                    className="h-12 rounded-xl border-zinc-200 focus:border-blue-500 font-medium"
+                                    required
+                                    minLength={6}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="confirmPassword" className="text-xs font-bold text-zinc-500">Confirmar Nova Senha</Label>
+                                <Input
+                                    id="confirmPassword"
+                                    name="confirmPassword"
+                                    type="password"
+                                    placeholder="Repita a nova senha"
+                                    className="h-12 rounded-xl border-zinc-200 focus:border-blue-500 font-medium"
+                                    required
+                                    minLength={6}
+                                />
+                            </div>
+                            <Button
+                                type="submit"
+                                disabled={changingPw}
+                                className="w-full h-12 bg-blue-600 hover:bg-blue-700 font-bold gap-2 rounded-xl active:scale-[0.98] transition-all"
+                            >
+                                {changingPw ? (
+                                    <><Loader2 className="w-4 h-4 animate-spin" /> Alterando...</>
+                                ) : (
+                                    <><Lock className="w-4 h-4" /> Confirmar Alteração</>
+                                )}
+                            </Button>
+                        </form>
+                    </DialogContent>
+                </Dialog>
 
-            {/* Logout */}
-            <Button
-                type="button"
-                variant="ghost"
-                onClick={() => signOut()}
-                className="w-full h-12 text-red-500 hover:text-red-600 hover:bg-red-50 font-bold gap-2 rounded-2xl"
-            >
-                <LogOut className="w-5 h-5" />
-                Sair da Conta
-            </Button>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => signOut()}
+                    className="flex-1 h-12 text-red-500 hover:text-red-600 hover:bg-red-50 font-bold gap-2 rounded-xl"
+                >
+                    <LogOut className="w-4 h-4" />
+                    Sair
+                </Button>
+            </div>
         </div>
     );
 }
