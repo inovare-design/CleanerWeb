@@ -273,6 +273,8 @@ export function AppointmentsTable({
                                     Status <SortIcon column="status" />
                                 </div>
                             </TableHead>
+                            <TableHead className="font-bold py-3">Duração</TableHead>
+                            <TableHead className="font-bold py-3">Tipo</TableHead>
                             <TableHead className="w-[80px]"></TableHead>
                         </TableRow>
                     </TableHeader>
@@ -294,9 +296,6 @@ export function AppointmentsTable({
                                     <div className="flex flex-col">
                                         <div className="flex items-center gap-2">
                                             <span className="font-medium">{apt.customer.user.name ?? "Cliente Desconhecido"}</span>
-                                            {apt.customer?.frequency && apt.customer.frequency !== 'ONE_TIME' && (
-                                                <Badge variant="outline" className="h-4 text-[10px] px-1 bg-blue-50 text-blue-600 border-blue-100 uppercase">Recorrente</Badge>
-                                            )}
                                         </div>
                                         <span className="text-xs text-muted-foreground flex items-center mt-0.5 truncate max-w-[150px]" title={apt.address}>
                                             <MapPin className="w-3 h-3 mr-1" /> {apt.address}
@@ -323,6 +322,27 @@ export function AppointmentsTable({
                                 </TableCell>
                                 <TableCell>
                                     {getStatusBadge(apt.status)}
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex items-center gap-1.5 text-zinc-600 font-medium">
+                                        <Clock className="w-3.5 h-3.5" />
+                                        <span className="text-sm">
+                                            {apt.customDuration || apt.service.durationMin || 0} min
+                                        </span>
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <Badge
+                                        variant="outline"
+                                        className={cn(
+                                            "h-5 text-[10px] px-2 font-black uppercase tracking-tighter",
+                                            apt.customer.frequency !== 'ONE_TIME'
+                                                ? "bg-blue-50 text-blue-600 border-blue-100"
+                                                : "bg-zinc-100 text-zinc-600 border-zinc-200"
+                                        )}
+                                    >
+                                        {apt.customer.frequency === 'ONE_TIME' ? 'Avulso' : 'Recorrente'}
+                                    </Badge>
                                 </TableCell>
                                 <TableCell>
                                     <AppointmentActions
