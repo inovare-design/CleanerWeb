@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
     Calendar, Clock, User, MapPin, Star, ChevronLeft,
     CheckCircle2, Circle, Truck, Loader2, XCircle, FileText,
-    Navigation
+    Navigation, Camera, MessageSquare, AlertTriangle, StickyNote
 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -217,19 +217,44 @@ export default async function AppointmentDetailPage(props: {
                 </Card>
             )}
 
-            {/* Proof Images */}
-            {isCompleted && appointment.proofImages.length > 0 && (
+            {/* Proof of Work Images */}
+            {appointment.proofImages.length > 0 && (
                 <Card className="border-0 shadow-sm">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-black uppercase tracking-widest text-zinc-400">Fotos do Serviço</CardTitle>
+                        <CardTitle className="text-sm font-black uppercase tracking-widest text-zinc-400 flex items-center gap-2">
+                            <Camera className="w-4 h-4" />
+                            Prova de Trabalho
+                        </CardTitle>
                     </CardHeader>
                     <CardContent className="pb-5">
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                             {appointment.proofImages.map((img: string, i: number) => (
-                                <div key={i} className="aspect-square rounded-xl overflow-hidden bg-zinc-100">
-                                    <img src={img} alt={`Prova ${i + 1}`} className="w-full h-full object-cover" />
-                                </div>
+                                <a key={i} href={img} target="_blank" rel="noopener noreferrer" className="group">
+                                    <div className="aspect-square rounded-xl overflow-hidden bg-zinc-100 ring-1 ring-zinc-200 group-hover:ring-blue-400 transition-all group-hover:shadow-lg">
+                                        <img src={img} alt={`Foto ${i + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                    </div>
+                                </a>
                             ))}
+                        </div>
+                        <p className="text-[10px] text-zinc-400 mt-3 font-medium">
+                            {appointment.proofImages.length} foto{appointment.proofImages.length !== 1 ? "s" : ""} registrada{appointment.proofImages.length !== 1 ? "s" : ""} pelo profissional
+                        </p>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Staff Notes */}
+            {appointment.notes && (
+                <Card className="border-0 shadow-sm">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-black uppercase tracking-widest text-zinc-400 flex items-center gap-2">
+                            <MessageSquare className="w-4 h-4" />
+                            Anotações da Equipe
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pb-5">
+                        <div className="bg-zinc-50 rounded-xl p-4 border border-zinc-100">
+                            <p className="text-sm text-zinc-700 leading-relaxed whitespace-pre-wrap">{appointment.notes}</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -239,14 +264,29 @@ export default async function AppointmentDetailPage(props: {
             {(appointment.warnings || appointment.priorityAreas) && (
                 <Card className="border-0 shadow-sm">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-black uppercase tracking-widest text-zinc-400">Observações</CardTitle>
+                        <CardTitle className="text-sm font-black uppercase tracking-widest text-zinc-400 flex items-center gap-2">
+                            <StickyNote className="w-4 h-4" />
+                            Observações
+                        </CardTitle>
                     </CardHeader>
-                    <CardContent className="pb-5 space-y-2">
+                    <CardContent className="pb-5 space-y-3">
                         {appointment.warnings && (
-                            <p className="text-sm text-zinc-600"><strong>Avisos:</strong> {appointment.warnings}</p>
+                            <div className="flex items-start gap-3 bg-amber-50 rounded-xl p-4 border border-amber-100">
+                                <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                                <div>
+                                    <p className="text-xs font-bold text-amber-700 uppercase tracking-wider mb-1">Avisos</p>
+                                    <p className="text-sm text-amber-800 leading-relaxed">{appointment.warnings}</p>
+                                </div>
+                            </div>
                         )}
                         {appointment.priorityAreas && (
-                            <p className="text-sm text-zinc-600"><strong>Áreas prioritárias:</strong> {appointment.priorityAreas}</p>
+                            <div className="flex items-start gap-3 bg-blue-50 rounded-xl p-4 border border-blue-100">
+                                <MapPin className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                                <div>
+                                    <p className="text-xs font-bold text-blue-700 uppercase tracking-wider mb-1">Áreas Prioritárias</p>
+                                    <p className="text-sm text-blue-800 leading-relaxed">{appointment.priorityAreas}</p>
+                                </div>
+                            </div>
                         )}
                     </CardContent>
                 </Card>
