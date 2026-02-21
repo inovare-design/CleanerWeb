@@ -20,10 +20,12 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { updateInvoiceStatus, deleteInvoice } from "@/actions/manage-invoices";
+import { updateInvoiceStatus, deleteInvoice, generateInvoicePaymentLink } from "@/actions/manage-invoices";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import Link from "next/link";
+import { CreditCard as PaymentIcon, ExternalLink, QrCode } from "lucide-react";
 
 interface InvoiceListProps {
     invoices: any[];
@@ -49,6 +51,18 @@ export function InvoiceList({ invoices }: InvoiceListProps) {
 
         setIsLoading(id);
         const res = await deleteInvoice(id);
+        setIsLoading(null);
+
+        if (res.success) {
+            toast.success(res.success);
+        } else {
+            toast.error(res.error);
+        }
+    };
+
+    const handleGenerateLink = async (id: string) => {
+        setIsLoading(id);
+        const res = await generateInvoicePaymentLink(id);
         setIsLoading(null);
 
         if (res.success) {
@@ -124,6 +138,21 @@ export function InvoiceList({ invoices }: InvoiceListProps) {
                                             <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-500" />
                                             Marcar como Pago
                                         </DropdownMenuItem>
+
+                                        {!invoice.paidAt && (
+                                            <DropdownMenuItem onClick={() => handleGenerateLink(invoice.id)}>
+                                                <PaymentIcon className="mr-2 h-4 w-4 text-blue-500" />
+                                                Gerar Link iDEAL
+                                            </DropdownMenuItem>
+                                        )}
+
+                                        <Link href={`/invoice/${invoice.id}`} target="_blank">
+                                            <DropdownMenuItem>
+                                                <ExternalLink className="mr-2 h-4 w-4" />
+                                                Ver Página Pública
+                                            </DropdownMenuItem>
+                                        </Link>
+
                                         <DropdownMenuItem onClick={() => handleStatusUpdate(invoice.id, "OPEN")}>
                                             <Eye className="mr-2 h-4 w-4 text-blue-500" />
                                             Reabrir

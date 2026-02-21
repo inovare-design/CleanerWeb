@@ -89,6 +89,7 @@ model Customer {
   frequency        ServiceFrequency @default(ONE_TIME)
   frequencyDetails String?
   billingDay       Int?
+  billingEmail     String?
   appointments     Appointment[]
   tenant           Tenant           @relation(fields: [tenantId], references: [id])
   user             User             @relation(fields: [userId], references: [id])
@@ -159,6 +160,8 @@ model Invoice {
   dueDate      DateTime
   paidAt       DateTime?
   customerId   String
+  paymentLink  String?
+  mollieId     String?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   appointments Appointment[]
