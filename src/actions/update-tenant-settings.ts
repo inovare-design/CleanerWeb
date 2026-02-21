@@ -19,6 +19,8 @@ export async function updateTenantSettings(formData: FormData) {
     const phone = formData.get("phone") as string;
     const address = formData.get("address") as string;
     const taxId = formData.get("taxId") as string;
+    const description = formData.get("description") as string;
+    const logoUrl = formData.get("logoUrl") as string;
     const bankName = formData.get("bankName") as string;
     const bankAgency = formData.get("bankAgency") as string;
     const bankAccount = formData.get("bankAccount") as string;
@@ -33,6 +35,8 @@ export async function updateTenantSettings(formData: FormData) {
                 phone,
                 address,
                 taxId,
+                description,
+                logoUrl,
                 bankName,
                 bankAgency,
                 bankAccount,

@@ -90,9 +90,14 @@ const routes = [
 
 interface AdminSidebarProps {
     user: ExtendedUser;
+    tenant?: {
+        name: string;
+        logoUrl?: string | null;
+        description?: string | null;
+    } | null;
 }
 
-export const AdminSidebar = ({ user }: AdminSidebarProps) => {
+export const AdminSidebar = ({ user, tenant }: AdminSidebarProps) => {
     const pathname = usePathname();
 
     const filteredRoutes = routes.filter(route => {
@@ -115,16 +120,31 @@ export const AdminSidebar = ({ user }: AdminSidebarProps) => {
     return (
         <div className="space-y-4 py-4 flex flex-col h-full bg-[#111827] text-white border-r border-[#1f2937]">
             <div className="px-3 py-2 flex-1">
-                <Link href="/admin" className="flex items-center pl-2 mb-6 mt-2">
-                    <div className="relative w-8 h-8 mr-3 flex items-center justify-center bg-blue-600 rounded-lg shadow-lg shadow-blue-900/20">
-                        <Truck className="h-5 w-5 text-white" />
+                <Link href="/admin" className="flex items-center pl-2 mb-6 mt-2 group">
+                    <div className="relative w-8 h-8 mr-3 flex items-center justify-center transition-transform group-hover:scale-110">
+                        {tenant?.logoUrl ? (
+                            <img
+                                src={tenant.logoUrl}
+                                alt={tenant.name}
+                                className="w-full h-full object-contain rounded-md"
+                            />
+                        ) : (
+                            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-900/20">
+                                <Truck className="h-5 w-5 text-white" />
+                            </div>
+                        )}
                     </div>
-                    <div>
-                        <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
-                            CleanRoute <span className="text-[10px] font-medium text-blue-400/80 bg-blue-400/10 px-1.5 py-0.5 rounded border border-blue-400/20">{APP_VERSION}</span>
+                    <div className="flex-1 min-w-0">
+                        <h1 className="text-sm font-black italic tracking-tighter uppercase leading-none truncate text-white flex items-center gap-1.5">
+                            {tenant?.name || "CleanRoute"}
+                            {!tenant?.logoUrl && (
+                                <span className="text-[8px] font-medium text-blue-400/80 bg-blue-400/10 px-1 py-0.5 rounded border border-blue-400/20 tabular-nums">
+                                    {APP_VERSION}
+                                </span>
+                            )}
                         </h1>
-                        <p className="text-[9px] text-gray-400 font-medium tracking-wider uppercase">
-                            Service Dispatch
+                        <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mt-1 truncate">
+                            {tenant?.description || "Service Dispatch"}
                         </p>
                     </div>
                 </Link>

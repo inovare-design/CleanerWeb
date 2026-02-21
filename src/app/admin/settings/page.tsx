@@ -24,6 +24,7 @@ import { CreateProfileModal, ProfileList } from "@/components/settings/profile-m
 import { saveSchedulingConfig } from "@/actions/save-scheduling-config";
 import { Switch } from "@/components/ui/switch";
 import Link from "next/link";
+import { TenantSettingsForm } from "@/components/settings/tenant-settings-form";
 
 export default async function SettingsPage(props: {
     searchParams?: Promise<{ tab?: string }>
@@ -157,37 +158,13 @@ export default async function SettingsPage(props: {
             ) : (
                 <div className="mt-6">
                     {currentTab === "general" && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Dados da Empresa</CardTitle>
-                                <CardDescription>Informações públicas e de contato da sua empresa.</CardDescription>
+                        <Card className="border-none shadow-xl shadow-zinc-200/50 dark:shadow-none bg-zinc-50/50 dark:bg-zinc-900/50 rounded-3xl overflow-hidden">
+                            <CardHeader className="p-8 pb-0">
+                                <CardTitle className="text-2xl font-black italic uppercase">Dados da Empresa</CardTitle>
+                                <CardDescription className="text-zinc-500">Informações públicas, contato e identidade visual.</CardDescription>
                             </CardHeader>
-                            <CardContent>
-                                <form action={updateTenantSettings} className="space-y-4">
-                                    <div className="grid gap-4 md:grid-cols-2">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="name">Nome da Empresa</Label>
-                                            <Input id="name" name="name" defaultValue={tenant.name} />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="email">Email de Contato</Label>
-                                            <Input id="email" name="email" defaultValue={tenant.email || ""} />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="phone">Telefone</Label>
-                                            <Input id="phone" name="phone" defaultValue={tenant.phone || ""} />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="taxId">CNPJ / Documento</Label>
-                                            <Input id="taxId" name="taxId" defaultValue={tenant.taxId || ""} />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="address">Endereço Completo</Label>
-                                        <Input id="address" name="address" defaultValue={tenant.address || ""} />
-                                    </div>
-                                    <Button type="submit">Salvar Alterações</Button>
-                                </form>
+                            <CardContent className="p-8">
+                                <TenantSettingsForm tenant={tenant} />
                             </CardContent>
                         </Card>
                     )}
@@ -326,39 +303,33 @@ export default async function SettingsPage(props: {
                     )}
 
                     {currentTab === "appearance" && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Personalização do Sistema</CardTitle>
-                                <CardDescription>Ajuste a identidade visual do seu portal.</CardDescription>
+                        <Card className="border-none shadow-xl shadow-zinc-200/50 dark:shadow-none bg-zinc-50/50 dark:bg-zinc-900/50 rounded-3xl overflow-hidden">
+                            <CardHeader className="p-8 pb-0">
+                                <CardTitle className="text-2xl font-black italic uppercase">Personalização do Sistema</CardTitle>
+                                <CardDescription className="text-zinc-500">Ajuste a identidade visual e o branding do seu portal.</CardDescription>
                             </CardHeader>
-                            <CardContent className="space-y-6">
-                                <div className="flex items-center gap-6">
-                                    <div className="h-24 w-24 bg-zinc-100 rounded-lg flex items-center justify-center border-2 border-dashed border-zinc-300">
-                                        <Building2 className="h-10 w-10 text-zinc-400" />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label>Logotipo da Empresa</Label>
-                                        <p className="text-sm text-zinc-500">Recomendado: 512x512px (PNG ou SVG)</p>
-                                        <Button variant="outline" size="sm" className="mt-2">Upload Logo</Button>
-                                    </div>
-                                </div>
-                                <div className="grid gap-4 md:grid-cols-2">
-                                    <div className="space-y-2">
-                                        <Label>Cor Primária</Label>
-                                        <div className="flex gap-2">
-                                            <div className="h-10 w-10 rounded bg-blue-600 border" />
-                                            <Input defaultValue="#2563eb" />
+                            <CardContent className="p-8">
+                                <TenantSettingsForm tenant={tenant} />
+
+                                <div className="mt-12 pt-12 border-t border-zinc-200 dark:border-zinc-800">
+                                    <h3 className="text-sm font-black uppercase tracking-widest text-zinc-400 mb-6">Em breve: Cores e Temas</h3>
+                                    <div className="grid gap-6 md:grid-cols-2 opacity-50 grayscale pointer-events-none">
+                                        <div className="space-y-2">
+                                            <Label>Cor Primária</Label>
+                                            <div className="flex gap-2">
+                                                <div className="h-11 w-11 rounded-xl bg-blue-600 border shadow-sm" />
+                                                <Input defaultValue="#2563eb" className="h-11 rounded-xl" />
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Modo do Sistema</Label>
-                                        <div className="flex gap-2">
-                                            <Button variant="outline" className="w-full">Claro</Button>
-                                            <Button variant="outline" className="w-full">Escuro</Button>
+                                        <div className="space-y-2">
+                                            <Label>Modo do Sistema</Label>
+                                            <div className="flex gap-2">
+                                                <Button variant="outline" className="w-full h-11 rounded-xl">Claro</Button>
+                                                <Button variant="outline" className="w-full h-11 rounded-xl">Escuro</Button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                                <Button disabled>Salvar Aparência (Breve)</Button>
                             </CardContent>
                         </Card>
                     )}
