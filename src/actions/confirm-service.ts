@@ -3,6 +3,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { processConfirmedAppointment } from "./process-confirmed-appointment";
 
 export async function confirmService(formData: FormData) {
     const session = await auth();
@@ -59,8 +60,12 @@ export async function confirmService(formData: FormData) {
             }
         });
 
+        // Trigger invoicing logic (ONE_TIME = immediate invoice, Recurring = marked for billing job)
+        await processConfirmedAppointment(appointmentId);
+
         revalidatePath(`/app/appointments/${appointmentId}`);
         revalidatePath("/app/appointments");
+        revalidatePath("/app/invoices");
         return { success: "Serviço confirmado com sucesso! Obrigado pela avaliação." };
     } catch (error) {
         console.error("Erro ao confirmar serviço:", error);
