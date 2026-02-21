@@ -1,6 +1,8 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { APP_VERSION } from "@/lib/version";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/db";
 import { DollarSign, TrendingUp, CreditCard, Receipt, Repeat, Clock } from "lucide-react";
@@ -8,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InvoiceList } from "@/components/finance/invoice-list";
 import { RecurringBillingManager } from "@/components/finance/recurring-manager";
 import { AppointmentInvoicer } from "@/components/finance/appointment-invoicer";
+import { User, UserCircle, Star, Timer, Briefcase, RefreshCw, UserCheck } from "lucide-react";
 
 async function getFinanceData(tenantId: string) {
     const [
@@ -51,7 +54,15 @@ async function getFinanceData(tenantId: string) {
         // Serviços concluídos recentemente
         db.appointment.findMany({
             where: { tenantId, status: "COMPLETED" },
-            include: { customer: { include: { user: true } }, service: true },
+            include: {
+                customer: { include: { user: true } },
+                employee: { include: { user: true } },
+                service: true,
+                feedbacks: {
+                    where: { type: "CLIENT_TO_EMPLOYEE" },
+                    take: 1
+                }
+            },
             orderBy: { updatedAt: "desc" },
             take: 10
         })
@@ -182,31 +193,100 @@ export default async function FinancePage() {
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-4">
-                                        {recentTransactions.map((t: any) => (
-                                            <div key={t.id} className="flex items-center justify-between p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
-                                                <div className="space-y-1">
-                                                    <p className="font-bold text-sm text-zinc-900 dark:text-zinc-100">{t.customer.user.name}</p>
-                                                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">{t.service.name}</p>
-                                                </div>
-                                                <div className="text-right space-y-1">
-                                                    <p className="font-black text-lg text-emerald-600">R$ {Number(t.price).toFixed(2)}</p>
-                                                    <div className="flex flex-col items-end gap-1">
-                                                        <p className="text-[10px] text-muted-foreground uppercase font-bold">{new Date(t.updatedAt).toLocaleDateString()}</p>
-                                                        {!t.invoiceId && (
-                                                            <AppointmentInvoicer
-                                                                appointmentId={t.id}
-                                                                customerId={t.customerId}
-                                                            />
-                                                        )}
-                                                        {t.invoiceId && (
-                                                            <span className="text-[9px] font-black text-emerald-500 uppercase bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">Faturado</span>
-                                                        )}
+                                        {recentTransactions.map((t: any) => {
+                                            const rating = t.feedbacks?.[0]?.rating;
+                                            const isRecurring = t.customer.frequency && t.customer.frequency !== 'ONE_TIME';
+
+                                            // Calcular duração
+                                            let durationText = "";
+                                            if (t.actualStartTime && t.actualEndTime) {
+                                                const diff = new Date(t.actualEndTime).getTime() - new Date(t.actualStartTime).getTime();
+                                                const hours = Math.floor(diff / (1000 * 60 * 60));
+                                                const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                                                durationText = `${hours}h ${mins}m`;
+                                            } else {
+                                                const mins = t.customDuration || t.service.durationMin || 0;
+                                                durationText = `${Math.floor(mins / 60)}h ${mins % 60}m`;
+                                            }
+
+                                            return (
+                                                <div key={t.id} className="flex flex-col md:flex-row md:items-center justify-between p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 shadow-sm hover:shadow-md transition-all gap-4 group">
+                                                    <div className="flex flex-col sm:flex-row sm:items-center gap-4 flex-1">
+                                                        {/* Avatar / Icon */}
+                                                        <div className="h-12 w-12 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 shrink-0">
+                                                            <UserCircle className="w-6 h-6" />
+                                                        </div>
+
+                                                        {/* Cliente e info principal */}
+                                                        <div className="space-y-1 flex-1">
+                                                            <div className="flex items-center gap-2 flex-wrap">
+                                                                <p className="font-black text-zinc-900 dark:text-zinc-100 leading-none">{t.customer.user.name}</p>
+                                                                <Badge variant="outline" className={cn(
+                                                                    "text-[9px] uppercase font-black px-1.5 h-4",
+                                                                    isRecurring ? "bg-blue-50 text-blue-600 border-blue-100" : "bg-zinc-100 text-zinc-600 border-zinc-200"
+                                                                )}>
+                                                                    {isRecurring ? "Recorrente" : "Avulso"}
+                                                                </Badge>
+                                                                {rating && (
+                                                                    <Badge variant="outline" className="text-[9px] uppercase font-black px-1.5 h-4 bg-amber-50 text-amber-600 border-amber-100 flex items-center gap-0.5">
+                                                                        <Star className="w-2.5 h-2.5 fill-current" /> {rating}
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex items-center gap-4 flex-wrap">
+                                                                <div className="flex items-center gap-1.5 text-blue-600">
+                                                                    <Briefcase className="w-3.5 h-3.5" />
+                                                                    <p className="text-[10px] font-black uppercase tracking-widest">{t.service.name}</p>
+                                                                </div>
+                                                                <div className="flex items-center gap-1.5 text-zinc-500 font-bold">
+                                                                    <UserCheck className="w-3.5 h-3.5 text-green-600" />
+                                                                    <p className="text-[10px] uppercase">Staff: {t.employee?.user?.name || "N/A"}</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-8 justify-between md:justify-end shrink-0">
+                                                        <div className="flex items-center gap-6">
+                                                            {/* Tempo de Trabalho */}
+                                                            <div className="flex flex-col items-end">
+                                                                <div className="flex items-center gap-1.5 text-zinc-400">
+                                                                    <Timer className="w-3.5 h-3.5" />
+                                                                    <span className="text-[10px] font-black uppercase tracking-tighter">Duração</span>
+                                                                </div>
+                                                                <p className="font-bold text-sm text-zinc-700 dark:text-zinc-300">{durationText}</p>
+                                                            </div>
+
+                                                            {/* Valor Financeiro */}
+                                                            <div className="flex flex-col items-end">
+                                                                <p className="text-[10px] font-black text-emerald-600/80 uppercase tracking-tighter">Valor Total</p>
+                                                                <p className="font-black text-xl text-emerald-600">R$ {Number(t.price).toFixed(2)}</p>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Ações */}
+                                                        <div className="w-[120px] flex flex-col items-end gap-1.5">
+                                                            <p className="text-[10px] text-muted-foreground uppercase font-black tabular-nums">{new Date(t.updatedAt).toLocaleDateString()}</p>
+                                                            {!t.invoiceId && (
+                                                                <AppointmentInvoicer
+                                                                    appointmentId={t.id}
+                                                                    customerId={t.customerId}
+                                                                />
+                                                            )}
+                                                            {t.invoiceId && (
+                                                                <span className="text-[9px] font-black text-emerald-500 uppercase bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-100 flex items-center gap-1">
+                                                                    <RefreshCw className="w-3 h-3" /> Faturado
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                         {recentTransactions.length === 0 && (
-                                            <div className="text-center py-12 text-muted-foreground italic">Nenhum serviço concluído registrado.</div>
+                                            <div className="text-center py-20 text-muted-foreground italic bg-zinc-50 dark:bg-zinc-900/50 rounded-3xl border border-dashed border-zinc-200 dark:border-zinc-800">
+                                                Nenhum serviço concluído registrado.
+                                            </div>
                                         )}
                                     </div>
                                 </CardContent>
