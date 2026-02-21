@@ -20,9 +20,9 @@ async function getClientData(userId: string) {
     const customerId = userWithCustomer.customerProfile.id;
 
     // Executamos as consultas em paralelo para carregar o dashboard mais rápido
-    const [nextAppointment, totalAppointments, totalInvestedResult] = await Promise.all([
-        // 1. Busca o agendamento mais próximo (hoje ou no futuro)
-        db.appointment.findFirst({
+    const [upcomingAppointments, totalAppointments, totalInvestedResult] = await Promise.all([
+        // 1. Busca TODOS os agendamentos futuros (confirmados ou pendentes)
+        db.appointment.findMany({
             where: {
                 customerId,
                 startTime: { gte: new Date() },
@@ -45,7 +45,7 @@ async function getClientData(userId: string) {
     const totalInvested = Number(totalInvestedResult._sum.price || 0);
 
     return {
-        nextAppointment,
+        upcomingAppointments,
         userName: userWithCustomer.name,
         totalAppointments,
         totalInvested
@@ -89,124 +89,131 @@ export default async function ClientDashboard() {
                 </div>
             </section>
 
-            {/* Next Appointment Card */}
-            {data?.nextAppointment ? (
-                <Card className="border-blue-100 bg-gradient-to-br from-white to-blue-50/30 shadow-md overflow-hidden relative group border-2">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none group-hover:scale-110 transition-all duration-500">
-                        <Calendar className="w-32 h-32 text-blue-600 rotate-12" />
-                    </div>
-                    <CardHeader className="pb-2 relative pt-6 px-6">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
-                                <CardTitle className="text-xs font-bold text-blue-600 uppercase tracking-[0.2em]">
-                                    Compromisso Confirmado
-                                </CardTitle>
-                            </div>
-                            <span className={`text-[10px] font-black px-3 py-1 rounded-full shadow-sm ${data.nextAppointment.status === 'CONFIRMED'
-                                ? 'bg-emerald-100 text-emerald-700'
-                                : 'bg-amber-100 text-amber-700'
+            {/* Upcoming Appointments */}
+            {data?.upcomingAppointments && data.upcomingAppointments.length > 0 ? (
+                <div className="space-y-4">
+                    <h2 className="text-sm font-black uppercase tracking-widest text-zinc-400">
+                        Seus Compromissos ({data.upcomingAppointments.length})
+                    </h2>
+                    {data.upcomingAppointments.map((appt: typeof data.upcomingAppointments[number], idx: number) => (
+                        <Link key={appt.id} href={`/app/appointments/${appt.id}`} className="block group">
+                            <Card className={`border-2 shadow-md overflow-hidden relative transition-all hover:shadow-lg hover:-translate-y-0.5 ${idx === 0 ? 'border-blue-100 bg-gradient-to-br from-white to-blue-50/30' : 'border-zinc-100 bg-white'
                                 }`}>
-                                {data.nextAppointment.status === 'CONFIRMED' ? 'PRONTO PARA BRILHAR' : 'AGUARDANDO APROVAÇÃO'}
-                            </span>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="relative px-6 pb-6 mt-2">
-                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                            <div>
-                                <h3 className="text-4xl font-black text-zinc-900 tracking-tight capitalize">
-                                    {new Date(data.nextAppointment.startTime).toLocaleDateString('pt-BR', { weekday: 'long' })},
-                                    <br />
-                                    <span className="text-blue-600">
-                                        {new Date(data.nextAppointment.startTime).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}
-                                    </span>
-                                </h3>
-                                <div className="flex items-center text-zinc-600 font-semibold mt-4 bg-white/50 w-fit px-3 py-1.5 rounded-lg border border-blue-50">
-                                    <Clock className="w-4 h-4 mr-2 text-blue-500" />
-                                    <span>{new Date(data.nextAppointment.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                    <span className="mx-3 opacity-20">|</span>
-                                    <span className="text-blue-700">{data.nextAppointment.service.name}</span>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-blue-100 shadow-sm transition-all hover:shadow-md min-w-[300px]">
-                                {data.nextAppointment.employee ? (
-                                    <>
-                                        <div
-                                            className="h-12 w-12 rounded-xl flex items-center justify-center text-white font-black shadow-lg shadow-blue-200"
-                                            style={{ backgroundColor: data.nextAppointment.employee.color || '#3b82f6' }}
-                                        >
-                                            {data.nextAppointment.employee.user.name?.substring(0, 2).toUpperCase()}
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-tighter">Sua Profissional</p>
-                                            <p className="text-base font-bold text-zinc-900">{data.nextAppointment.employee.user.name}</p>
-                                        </div>
-                                        <div className="flex flex-col items-end">
-                                            <div className="flex items-center text-amber-500 mb-1">
-                                                <Star className="w-3 h-3 fill-current" />
-                                                <span className="ml-1 text-xs font-bold font-mono">4.9</span>
-                                            </div>
-                                            <Button variant="ghost" size="sm" className="h-7 text-[10px] font-bold uppercase tracking-wider text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2">
-                                                Mensagem
-                                            </Button>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="text-xs text-gray-400 italic flex items-center gap-3 p-2">
-                                        <div className="w-10 h-10 rounded-xl bg-zinc-50 border border-dashed flex items-center justify-center">
-                                            <Users className="w-4 h-4 text-zinc-300" />
-                                        </div>
-                                        Definindo melhor profissional...
+                                {idx === 0 && (
+                                    <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none group-hover:scale-110 transition-all duration-500">
+                                        <Calendar className="w-32 h-32 text-blue-600 rotate-12" />
                                     </div>
                                 )}
-                            </div>
-                        </div>
+                                <CardHeader className="pb-2 relative pt-5 px-6">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div className={`w-2 h-2 rounded-full ${idx === 0 ? 'bg-blue-600 animate-pulse' : 'bg-zinc-300'}`} />
+                                            <CardTitle className={`text-xs font-bold uppercase tracking-[0.2em] ${idx === 0 ? 'text-blue-600' : 'text-zinc-400'}`}>
+                                                {idx === 0 ? 'Próximo Compromisso' : 'Compromisso Agendado'}
+                                            </CardTitle>
+                                        </div>
+                                        <span className={`text-[10px] font-black px-3 py-1 rounded-full shadow-sm ${appt.status === 'CONFIRMED'
+                                            ? 'bg-emerald-100 text-emerald-700'
+                                            : 'bg-amber-100 text-amber-700'
+                                            }`}>
+                                            {appt.status === 'CONFIRMED' ? 'CONFIRMADO' : 'AGUARDANDO APROVAÇÃO'}
+                                        </span>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="relative px-6 pb-5 mt-1">
+                                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                                        <div>
+                                            <h3 className={`font-black text-zinc-900 tracking-tight capitalize ${idx === 0 ? 'text-3xl' : 'text-2xl'}`}>
+                                                {new Date(appt.startTime).toLocaleDateString('pt-BR', { weekday: 'long' })},
+                                                <br />
+                                                <span className="text-blue-600">
+                                                    {new Date(appt.startTime).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}
+                                                </span>
+                                            </h3>
+                                            <div className="flex items-center text-zinc-600 font-semibold mt-3 bg-white/50 w-fit px-3 py-1.5 rounded-lg border border-blue-50">
+                                                <Clock className="w-4 h-4 mr-2 text-blue-500" />
+                                                <span>{new Date(appt.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                <span className="mx-3 opacity-20">|</span>
+                                                <span className="text-blue-700">{appt.service.name}</span>
+                                            </div>
+                                        </div>
 
-                        {/* Step-by-Step Progress */}
-                        <div className="mt-5 pt-5 border-t border-blue-100">
-                            {(() => {
-                                const steps = [
-                                    { key: "PENDING", label: "Agendado", desc: "Reserva registada" },
-                                    { key: "CONFIRMED", label: "Confirmado", desc: "Aprovado pelo admin" },
-                                    { key: "IN_PROGRESS", label: "Em Andamento", desc: "Serviço a decorrer" },
-                                    { key: "COMPLETED", label: "Concluído", desc: "Trabalho finalizado" },
-                                ];
-                                const statusMap: Record<string, number> = {
-                                    PENDING: 0, CONFIRMED: 1, EN_ROUTE: 2, IN_PROGRESS: 2,
-                                    AWAITING_CONFIRMATION: 3, COMPLETED: 3
-                                };
-                                const current = statusMap[data.nextAppointment.status] ?? 0;
-                                return (
-                                    <div className="flex items-center gap-0">
-                                        {steps.map((step, i) => {
-                                            const isDone = i < current;
-                                            const isCurrent = i === current;
-                                            return (
-                                                <div key={step.key} className="flex items-center flex-1">
-                                                    <div className="flex flex-col items-center flex-1">
-                                                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black border-2 transition-all ${isDone ? "bg-emerald-500 border-emerald-500 text-white"
-                                                                : isCurrent ? "bg-blue-600 border-blue-600 text-white scale-110 shadow-md shadow-blue-200"
-                                                                    : "bg-white border-zinc-200 text-zinc-300"
-                                                            }`}>
-                                                            {isDone ? "✓" : i + 1}
-                                                        </div>
-                                                        <span className={`text-[9px] font-bold mt-1 text-center leading-tight ${isDone ? "text-emerald-600" : isCurrent ? "text-blue-600" : "text-zinc-300"
-                                                            }`}>{step.label}</span>
+                                        <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-zinc-100 shadow-sm min-w-[280px]">
+                                            {appt.employee ? (
+                                                <>
+                                                    <div
+                                                        className="h-11 w-11 rounded-xl flex items-center justify-center text-white font-black shadow-lg shadow-blue-200"
+                                                        style={{ backgroundColor: appt.employee.color || '#3b82f6' }}
+                                                    >
+                                                        {appt.employee.user.name?.substring(0, 2).toUpperCase()}
                                                     </div>
-                                                    {i < steps.length - 1 && (
-                                                        <div className={`h-0.5 flex-1 -mx-1 mt-[-14px] ${i < current ? "bg-emerald-400" : "bg-zinc-200"
-                                                            }`} />
-                                                    )}
+                                                    <div className="flex-1">
+                                                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-tighter">Sua Profissional</p>
+                                                        <p className="text-sm font-bold text-zinc-900">{appt.employee.user.name}</p>
+                                                    </div>
+                                                    <div className="flex items-center text-amber-500">
+                                                        <Star className="w-3 h-3 fill-current" />
+                                                        <span className="ml-1 text-xs font-bold font-mono">4.9</span>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className="text-xs text-gray-400 italic flex items-center gap-3 p-2">
+                                                    <div className="w-10 h-10 rounded-xl bg-zinc-50 border border-dashed flex items-center justify-center">
+                                                        <Users className="w-4 h-4 text-zinc-300" />
+                                                    </div>
+                                                    Definindo melhor profissional...
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Step-by-Step Progress */}
+                                    <div className="mt-4 pt-4 border-t border-zinc-100">
+                                        {(() => {
+                                            const steps = [
+                                                { key: "PENDING", label: "Agendado" },
+                                                { key: "CONFIRMED", label: "Confirmado" },
+                                                { key: "Em Andamento", label: "Serviço" },
+                                                { key: "COMPLETED", label: "Concluído" },
+                                            ];
+                                            const statusMap: Record<string, number> = {
+                                                PENDING: 0, CONFIRMED: 1, EN_ROUTE: 2, IN_PROGRESS: 2,
+                                                AWAITING_CONFIRMATION: 3, COMPLETED: 3
+                                            };
+                                            const current = statusMap[appt.status] ?? 0;
+                                            return (
+                                                <div className="flex items-center gap-0">
+                                                    {steps.map((step, i) => {
+                                                        const isDone = i < current;
+                                                        const isCurrent = i === current;
+                                                        return (
+                                                            <div key={step.key} className="flex items-center flex-1">
+                                                                <div className="flex flex-col items-center flex-1">
+                                                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black border-2 transition-all ${isDone ? "bg-emerald-500 border-emerald-500 text-white"
+                                                                        : isCurrent ? "bg-blue-600 border-blue-600 text-white"
+                                                                            : "bg-white border-zinc-200 text-zinc-300"
+                                                                        }`}>
+                                                                        {isDone ? "✓" : i + 1}
+                                                                    </div>
+                                                                    <span className={`text-[8px] font-bold mt-1 text-center leading-tight ${isDone ? "text-emerald-600" : isCurrent ? "text-blue-600" : "text-zinc-300"
+                                                                        }`}>{step.label}</span>
+                                                                </div>
+                                                                {i < steps.length - 1 && (
+                                                                    <div className={`h-0.5 flex-1 -mx-1 mt-[-12px] ${i < current ? "bg-emerald-400" : "bg-zinc-200"
+                                                                        }`} />
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
                                             );
-                                        })}
+                                        })()}
                                     </div>
-                                );
-                            })()}
-                        </div>
-                    </CardContent>
-                </Card>
+                                </CardContent>
+                            </Card>
+                        </Link>
+                    ))}
+                </div>
             ) : (
                 <Card className="border-dashed border-2 shadow-sm bg-zinc-50/50 hover:bg-white transition-colors">
                     <CardContent className="flex flex-col items-center justify-center py-14 text-center">
