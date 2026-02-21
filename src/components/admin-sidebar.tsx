@@ -21,6 +21,7 @@ import { signOut } from "next-auth/react";
 import { Button } from "./ui/button";
 import { ExtendedUser } from "../../next-auth";
 import { APP_VERSION } from "@/lib/version";
+import { GlobalSearch } from "./admin/global-search";
 
 const routes = [
     {
@@ -127,6 +128,9 @@ export const AdminSidebar = ({ user }: AdminSidebarProps) => {
                         </p>
                     </div>
                 </Link>
+
+                <GlobalSearch />
+
                 <div className="space-y-1">
                     {filteredRoutes.map((route) => (
                         <Link
