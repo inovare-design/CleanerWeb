@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { AppointmentStatus } from "@prisma/client";
+import { sendAppointmentNotification } from "@/lib/notifications";
 
 export async function updateAppointmentStatus(appointmentId: string, status: AppointmentStatus) {
     try {
@@ -18,12 +19,18 @@ export async function updateAppointmentStatus(appointmentId: string, status: App
             data: updateData,
         });
 
-        // Se o status for COMPLETED (confirmado manualmente pelo admin/cliente),
-        // poderíamos disparar o processamento financeiro aqui, 
-        // mas vamos criar uma action separada para maior controle.
-
         revalidatePath("/admin/appointments");
         revalidatePath("/admin/customers");
+
+        // Disparar notificações de status
+        if ((status as string) === "EN_ROUTE") {
+            sendAppointmentNotification(appointmentId, "EN_ROUTE");
+        } else if ((status as string) === "IN_PROGRESS") {
+            sendAppointmentNotification(appointmentId, "STARTED");
+        } else if ((status as string) === "COMPLETED") {
+            sendAppointmentNotification(appointmentId, "FINISHED");
+        }
+
         return { success: "Status atualizado com sucesso!" };
     } catch (error) {
         console.error("Erro ao atualizar status:", error);

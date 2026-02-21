@@ -21,6 +21,12 @@ export async function saveSchedulingConfig(formData: FormData) {
         const rateUrgent = formData.get("rateUrgent");
         const minDurationMin = formData.get("minDurationMin");
 
+        // Novos campos de notificação
+        const notifyDayBefore = formData.get("notifyDayBefore") === "on";
+        const notifyOnTheWay = formData.get("notifyOnTheWay") === "on";
+        const notifyServiceStarted = formData.get("notifyServiceStarted") === "on";
+        const notifyServiceFinished = formData.get("notifyServiceFinished") === "on";
+
         const config = await db.schedulingConfig.upsert({
             where: { tenantId },
             create: {
@@ -31,6 +37,10 @@ export async function saveSchedulingConfig(formData: FormData) {
                 rateNormal2: Number(rateNormal2),
                 rateUrgent: Number(rateUrgent),
                 minDurationMin: Number(minDurationMin),
+                notifyDayBefore,
+                notifyOnTheWay,
+                notifyServiceStarted,
+                notifyServiceFinished
             },
             update: {
                 availability,
@@ -39,6 +49,10 @@ export async function saveSchedulingConfig(formData: FormData) {
                 rateNormal2: Number(rateNormal2),
                 rateUrgent: Number(rateUrgent),
                 minDurationMin: Number(minDurationMin),
+                notifyDayBefore,
+                notifyOnTheWay,
+                notifyServiceStarted,
+                notifyServiceFinished
             }
         });
 

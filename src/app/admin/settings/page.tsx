@@ -21,6 +21,8 @@ import { updateTenantSettings } from "@/actions/update-tenant-settings";
 import { CreateAdminModal } from "@/components/modals/create-admin-modal";
 import { AdminUserActions } from "@/components/admin-user-actions";
 import { CreateProfileModal, ProfileList } from "@/components/settings/profile-management";
+import { saveSchedulingConfig } from "@/actions/save-scheduling-config";
+import { Switch } from "@/components/ui/switch";
 import Link from "next/link";
 
 export default async function SettingsPage(props: {
@@ -365,26 +367,67 @@ export default async function SettingsPage(props: {
                         <Card>
                             <CardHeader>
                                 <CardTitle>Preferências de Notificação</CardTitle>
-                                <CardDescription>Configure como você e seus clientes são alertados.</CardDescription>
+                                <CardDescription>Configure como você e seus clientes são alertados sobre os serviços.</CardDescription>
                             </CardHeader>
-                            <CardContent className="space-y-6">
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                                        <div className="space-y-0.5">
-                                            <Label className="text-base">E-mail de boas-vindas</Label>
-                                            <p className="text-sm text-zinc-500">Enviar e-mail para novos clientes cadastrados.</p>
+                            <CardContent>
+                                <form action={saveSchedulingConfig} className="space-y-6">
+                                    {/* Campos ocultos para manter as outras configs do schedulingConfig se necessário, 
+                                        ou podemos apenas atualizar os campos de notificação se o upsert for inteligente.
+                                        Como a action exige availability e holidays, vamos passar os valores atuais. */}
+                                    <input type="hidden" name="availability" defaultValue={tenant.schedulingConfig?.availability || "{}"} />
+                                    <input type="hidden" name="holidays" defaultValue={tenant.schedulingConfig?.holidays || "[]"} />
+                                    <input type="hidden" name="rateNormal" defaultValue={tenant.schedulingConfig?.rateNormal?.toString() || "50"} />
+                                    <input type="hidden" name="rateNormal2" defaultValue={tenant.schedulingConfig?.rateNormal2?.toString() || "75"} />
+                                    <input type="hidden" name="rateUrgent" defaultValue={tenant.schedulingConfig?.rateUrgent?.toString() || "100"} />
+                                    <input type="hidden" name="minDurationMin" defaultValue={tenant.schedulingConfig?.minDurationMin?.toString() || "60"} />
+
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between p-4 border rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50">
+                                            <div className="space-y-0.5">
+                                                <Label className="text-base font-bold">Lembrete (24h antes)</Label>
+                                                <p className="text-xs text-muted-foreground">Enviar e-mail automático ao cliente um dia antes do serviço.</p>
+                                            </div>
+                                            <Switch
+                                                name="notifyDayBefore"
+                                                defaultChecked={tenant.schedulingConfig?.notifyDayBefore !== false}
+                                            />
                                         </div>
-                                        <div className="h-6 w-10 bg-zinc-200 rounded-full cursor-not-allowed" />
-                                    </div>
-                                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                                        <div className="space-y-0.5">
-                                            <Label className="text-base">Lembrete de agendamento</Label>
-                                            <p className="text-sm text-zinc-500">Notificar cliente 24h antes do serviço.</p>
+
+                                        <div className="flex items-center justify-between p-4 border rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50">
+                                            <div className="space-y-0.5">
+                                                <Label className="text-base font-bold">Aviso "A Caminho"</Label>
+                                                <p className="text-xs text-muted-foreground">Notificar quando o staff iniciar o deslocamento para o local.</p>
+                                            </div>
+                                            <Switch
+                                                name="notifyOnTheWay"
+                                                defaultChecked={tenant.schedulingConfig?.notifyOnTheWay !== false}
+                                            />
                                         </div>
-                                        <div className="h-6 w-10 bg-blue-600 rounded-full cursor-not-allowed" />
+
+                                        <div className="flex items-center justify-between p-4 border rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50">
+                                            <div className="space-y-0.5">
+                                                <Label className="text-base font-bold">Início de Serviço</Label>
+                                                <p className="text-xs text-muted-foreground">Notificar o cliente assim que o staff começar o trabalho.</p>
+                                            </div>
+                                            <Switch
+                                                name="notifyServiceStarted"
+                                                defaultChecked={tenant.schedulingConfig?.notifyServiceStarted !== false}
+                                            />
+                                        </div>
+
+                                        <div className="flex items-center justify-between p-4 border rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50">
+                                            <div className="space-y-0.5">
+                                                <Label className="text-base font-bold">Finalização de Serviço</Label>
+                                                <p className="text-xs text-muted-foreground">Notificar o cliente quando o serviço for concluído.</p>
+                                            </div>
+                                            <Switch
+                                                name="notifyServiceFinished"
+                                                defaultChecked={tenant.schedulingConfig?.notifyServiceFinished !== false}
+                                            />
+                                        </div>
                                     </div>
-                                </div>
-                                <Button disabled>Salvar Preferências (Breve)</Button>
+                                    <Button type="submit" className="w-full md:w-auto">Salvar Preferências de Notificação</Button>
+                                </form>
                             </CardContent>
                         </Card>
                     )}

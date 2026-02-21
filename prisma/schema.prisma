@@ -101,6 +101,9 @@ model Employee {
   userId       String            @unique
   color        String?           @default("#000000")
   phone        String?
+  latitude     Float?            // Localização em tempo real
+  longitude    Float?           // Localização em tempo real
+  lastLocationUpdate DateTime?  // Última atualização de posição
   tenantId     String
   appointments Appointment[]
   tenant       Tenant            @relation(fields: [tenantId], references: [id])
@@ -151,6 +154,7 @@ model Appointment {
   service                Service             @relation(fields: [serviceId], references: [id])
   tenant                 Tenant              @relation(fields: [tenantId], references: [id])
   feedbacks              Feedback[]
+  notifications          NotificationLog[]
 }
 
 model Invoice {
@@ -208,7 +212,24 @@ model SchedulingConfig {
   updatedAt            DateTime @updatedAt
   allowTeammateRatings Boolean  @default(false)
   enableTips           Boolean  @default(false)
+  
+  // Configurações de Notificação
+  notifyDayBefore       Boolean @default(true)
+  notifyOnTheWay        Boolean @default(true)
+  notifyServiceStarted  Boolean @default(true)
+  notifyServiceFinished Boolean @default(true)
+  
   tenant               Tenant   @relation(fields: [tenantId], references: [id])
+}
+
+model NotificationLog {
+  id            String   @id @default(uuid())
+  appointmentId String
+  type          String   // DAY_BEFORE, EN_ROUTE, STARTED, FINISHED
+  recipient     String
+  status        String   // SENT, FAILED
+  sentAt        DateTime @default(now())
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
 }
 
 enum PaymentType {
@@ -232,6 +253,7 @@ enum Role {
 enum AppointmentStatus {
   PENDING
   CONFIRMED
+  EN_ROUTE               // Staff a caminho
   IN_PROGRESS
   AWAITING_CONFIRMATION
   COMPLETED
