@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 import {
     Table,
     TableBody,
@@ -71,6 +72,7 @@ export function AppointmentsTable({
 }: AppointmentsTableProps) {
     const [query, setQuery] = useState("");
     const [filterType, setFilterType] = useState<string>("all");
+    const [filterToday, setFilterToday] = useState(false);
     const [sortKey, setSortKey] = useState<string>("date");
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
@@ -96,6 +98,16 @@ export function AppointmentsTable({
                 if (filterType === "recurring") return isRecurring;
                 if (filterType === "one-time") return !isRecurring;
                 return true;
+            });
+        }
+
+        // 1.2 Filter by Today
+        if (filterToday) {
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            result = result.filter(apt => {
+                const aptDate = new Date(apt.startTime).toISOString().split('T')[0];
+                return aptDate === todayStr;
             });
         }
 
@@ -134,7 +146,7 @@ export function AppointmentsTable({
         });
 
         return result;
-    }, [initialAppointments, query, sortKey, sortOrder]);
+    }, [initialAppointments, query, filterType, filterToday, sortKey, sortOrder]);
 
     const handleSort = (key: string) => {
         if (sortKey === key) {
@@ -183,13 +195,29 @@ export function AppointmentsTable({
                                 placeholder="Buscar cliente ou serviço..."
                             />
                         </div>
-                        {(query || sortKey !== 'date' || sortOrder !== 'desc') && (
+                        <Button
+                            variant={filterToday ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => {
+                                setFilterToday(!filterToday);
+                                if (!filterToday) {
+                                    setSortKey("date");
+                                    setSortOrder("asc");
+                                }
+                            }}
+                            className={cn("text-xs h-9", filterToday && "bg-blue-600 hover:bg-blue-700")}
+                        >
+                            <CalendarIcon className="w-4 h-4 mr-2" />
+                            Hoje
+                        </Button>
+                        {(query || filterToday || filterType !== 'all' || sortKey !== 'date' || sortOrder !== 'desc') && (
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => {
                                     setQuery("");
                                     setFilterType("all");
+                                    setFilterToday(false);
                                     setSortKey("date");
                                     setSortOrder("desc");
                                 }}
