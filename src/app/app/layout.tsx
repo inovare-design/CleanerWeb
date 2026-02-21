@@ -1,6 +1,7 @@
 import { ClientNav } from "@/components/client-nav";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { db } from "@/lib/db";
 
 export default async function ClientLayout({
     children,
@@ -17,10 +18,15 @@ export default async function ClientLayout({
         redirect("/");
     }
 
+    const tenant = session.user.tenantId ? await db.tenant.findUnique({
+        where: { id: session.user.tenantId },
+        select: { name: true, logoUrl: true, description: true }
+    }) : null;
+
     return (
         <div className="min-h-screen bg-gray-50/50 flex flex-col">
-            <ClientNav />
-            <main className="flex-1 container max-w-4xl mx-auto px-4 py-6 md:py-8 mb-16 md:mb-0">
+            <ClientNav tenant={tenant} />
+            <main className="flex-1 container max-w-4xl mx-auto px-4 py-6 md:py-8 mb-20 md:mb-0">
                 {children}
             </main>
         </div>

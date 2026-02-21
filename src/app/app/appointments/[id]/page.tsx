@@ -1,0 +1,256 @@
+import { auth } from "@/auth";
+import { db } from "@/lib/db";
+import { redirect, notFound } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+    Calendar, Clock, User, MapPin, Star, ChevronLeft,
+    CheckCircle2, Circle, Truck, Loader2, XCircle, FileText,
+    Navigation
+} from "lucide-react";
+import Link from "next/link";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+
+const timelineSteps = [
+    { status: "PENDING", label: "Agendado", icon: Calendar },
+    { status: "CONFIRMED", label: "Confirmado", icon: CheckCircle2 },
+    { status: "EN_ROUTE", label: "A Caminho", icon: Truck },
+    { status: "IN_PROGRESS", label: "Em Andamento", icon: Loader2 },
+    { status: "COMPLETED", label: "Concluído", icon: CheckCircle2 },
+];
+
+function getStepIndex(status: string): number {
+    if (status === "CANCELLED") return -1;
+    if (status === "AWAITING_CONFIRMATION") return 3;
+    return timelineSteps.findIndex(s => s.status === status);
+}
+
+export default async function AppointmentDetailPage(props: {
+    params: Promise<{ id: string }>
+}) {
+    const params = await props.params;
+    const session = await auth();
+    if (!session?.user?.id) redirect("/login");
+
+    const user = await db.user.findUnique({
+        where: { id: session.user.id },
+        include: { customerProfile: true }
+    });
+
+    if (!user?.customerProfile) redirect("/app");
+
+    const appointment = await db.appointment.findUnique({
+        where: { id: params.id },
+        include: {
+            service: true,
+            employee: { include: { user: true } },
+            feedbacks: true,
+        }
+    });
+
+    if (!appointment || appointment.customerId !== user.customerProfile.id) {
+        notFound();
+    }
+
+    const currentStep = getStepIndex(appointment.status);
+    const isCancelled = appointment.status === "CANCELLED";
+    const isLive = ["EN_ROUTE", "IN_PROGRESS"].includes(appointment.status);
+    const isCompleted = appointment.status === "COMPLETED";
+    const duration = appointment.customDuration || appointment.service.durationMin || 60;
+    const hours = Math.floor(duration / 60);
+    const minutes = duration % 60;
+    const durationText = hours > 0 ? `${hours}h${minutes > 0 ? ` ${minutes}min` : ""}` : `${minutes}min`;
+
+    return (
+        <div className="space-y-6">
+            {/* Back Button */}
+            <Link href="/app/appointments" className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 hover:text-zinc-900 transition-colors">
+                <ChevronLeft className="w-4 h-4" />
+                Voltar
+            </Link>
+
+            {/* Service Header */}
+            <div className="space-y-2">
+                <div className="flex items-start justify-between">
+                    <div>
+                        <h1 className="text-2xl font-black tracking-tight text-zinc-900">{appointment.service.name}</h1>
+                        {appointment.service.description && (
+                            <p className="text-sm text-muted-foreground mt-1 max-w-md">{appointment.service.description}</p>
+                        )}
+                    </div>
+                    <Badge className={cn(
+                        "text-xs font-black px-3 py-1 rounded-lg",
+                        isCancelled ? "bg-red-100 text-red-700"
+                            : isCompleted ? "bg-emerald-100 text-emerald-700"
+                                : isLive ? "bg-blue-100 text-blue-700"
+                                    : "bg-amber-100 text-amber-700"
+                    )}>
+                        {isCancelled ? "Cancelado" : isCompleted ? "Concluído" : isLive ? "Ao Vivo" : "Agendado"}
+                    </Badge>
+                </div>
+            </div>
+
+            {/* Date & Time Card */}
+            <Card className="border-0 shadow-sm">
+                <CardContent className="p-5">
+                    <div className="grid grid-cols-3 gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-50 rounded-lg">
+                                <Calendar className="w-5 h-5 text-blue-600" />
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase">Data</p>
+                                <p className="text-sm font-bold text-zinc-900 capitalize">
+                                    {format(new Date(appointment.startTime), "dd MMM, yyyy", { locale: ptBR })}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-violet-50 rounded-lg">
+                                <Clock className="w-5 h-5 text-violet-600" />
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase">Horário</p>
+                                <p className="text-sm font-bold text-zinc-900">
+                                    {format(new Date(appointment.startTime), "HH:mm")} · {durationText}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-emerald-50 rounded-lg">
+                                <FileText className="w-5 h-5 text-emerald-600" />
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase">Valor</p>
+                                <p className="text-sm font-bold text-zinc-900">
+                                    € {Number(appointment.price).toFixed(2)}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Visual Timeline */}
+            {!isCancelled && (
+                <Card className="border-0 shadow-sm">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-black uppercase tracking-widest text-zinc-400">Progresso</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pb-6">
+                        <div className="flex items-center justify-between relative px-2">
+                            {/* Connector Line */}
+                            <div className="absolute top-5 left-8 right-8 h-0.5 bg-zinc-200" />
+                            <div
+                                className="absolute top-5 left-8 h-0.5 bg-blue-600 transition-all duration-700"
+                                style={{ width: `${Math.max(0, (currentStep / (timelineSteps.length - 1)) * 100 - 5)}%` }}
+                            />
+
+                            {timelineSteps.map((step, index) => {
+                                const isActive = index <= currentStep;
+                                const isCurrent = index === currentStep;
+                                const StepIcon = step.icon;
+
+                                return (
+                                    <div key={step.status} className="flex flex-col items-center z-10 relative">
+                                        <div className={cn(
+                                            "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all",
+                                            isCurrent
+                                                ? "bg-blue-600 border-blue-600 text-white scale-110 shadow-lg shadow-blue-200"
+                                                : isActive
+                                                    ? "bg-blue-600 border-blue-600 text-white"
+                                                    : "bg-white border-zinc-200 text-zinc-300"
+                                        )}>
+                                            <StepIcon className={cn("w-4 h-4", isCurrent && step.status === "IN_PROGRESS" && "animate-spin")} />
+                                        </div>
+                                        <span className={cn(
+                                            "text-[10px] font-bold mt-2 text-center",
+                                            isActive ? "text-zinc-900" : "text-zinc-300"
+                                        )}>
+                                            {step.label}
+                                        </span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Live Tracking Button */}
+            {isLive && (
+                <Link href={`/tracking/${appointment.id}`} className="block">
+                    <Button className="w-full h-14 bg-blue-600 hover:bg-blue-700 text-lg font-black gap-3 rounded-2xl shadow-lg shadow-blue-200 active:scale-[0.98] transition-all">
+                        <Navigation className="w-6 h-6" />
+                        Rastrear ao Vivo
+                    </Button>
+                </Link>
+            )}
+
+            {/* Employee Card */}
+            {appointment.employee && (
+                <Card className="border-0 shadow-sm">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-black uppercase tracking-widest text-zinc-400">Profissional</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pb-5">
+                        <div className="flex items-center gap-4">
+                            <div
+                                className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg"
+                                style={{ backgroundColor: appointment.employee.color || "#3b82f6" }}
+                            >
+                                {appointment.employee.user.name?.substring(0, 2).toUpperCase()}
+                            </div>
+                            <div className="flex-1">
+                                <p className="font-bold text-zinc-900 text-lg">{appointment.employee.user.name}</p>
+                                <div className="flex items-center gap-1 mt-0.5">
+                                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                                    <span className="text-sm font-bold text-amber-600">4.9</span>
+                                    <span className="text-xs text-zinc-400 ml-1">· Profissional Verificado</span>
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Proof Images */}
+            {isCompleted && appointment.proofImages.length > 0 && (
+                <Card className="border-0 shadow-sm">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-black uppercase tracking-widest text-zinc-400">Fotos do Serviço</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pb-5">
+                        <div className="grid grid-cols-3 gap-2">
+                            {appointment.proofImages.map((img: string, i: number) => (
+                                <div key={i} className="aspect-square rounded-xl overflow-hidden bg-zinc-100">
+                                    <img src={img} alt={`Prova ${i + 1}`} className="w-full h-full object-cover" />
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Warnings / Priority Areas */}
+            {(appointment.warnings || appointment.priorityAreas) && (
+                <Card className="border-0 shadow-sm">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-black uppercase tracking-widest text-zinc-400">Observações</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pb-5 space-y-2">
+                        {appointment.warnings && (
+                            <p className="text-sm text-zinc-600"><strong>Avisos:</strong> {appointment.warnings}</p>
+                        )}
+                        {appointment.priorityAreas && (
+                            <p className="text-sm text-zinc-600"><strong>Áreas prioritárias:</strong> {appointment.priorityAreas}</p>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
+        </div>
+    );
+}
