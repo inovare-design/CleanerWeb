@@ -12,6 +12,7 @@ const CreateEmployeeSchema = z.object({
     password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
     phone: z.string().optional(),
     color: z.string().min(4, "Cor inválida"), // Hex code
+    servedAreas: z.string().optional(),
 });
 
 export async function createEmployee(formData: FormData) {
@@ -30,6 +31,7 @@ export async function createEmployee(formData: FormData) {
         password: formData.get("password"),
         phone: formData.get("phone"),
         color: formData.get("color"),
+        servedAreas: formData.get("servedAreas"),
     });
 
     if (!validatedFields.success) {
@@ -38,7 +40,7 @@ export async function createEmployee(formData: FormData) {
         return { error: firstError || "Campos inválidos. Verifique os dados." };
     }
 
-    const { name, email, password, phone, color } = validatedFields.data;
+    const { name, email, password, phone, color, servedAreas } = validatedFields.data;
     const profileId = formData.get("profileId") as string;
 
     try {
@@ -64,6 +66,7 @@ export async function createEmployee(formData: FormData) {
                     create: {
                         phone,
                         color,
+                        servedAreas: servedAreas ? servedAreas.split(',').map(s => s.trim()).filter(Boolean) : [],
                         tenantId: tenantId
                     }
                 }

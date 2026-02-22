@@ -443,6 +443,16 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
                                         <span className="text-sm text-muted-foreground">Esta cor facilita a identificação rápida na agenda geral.</span>
                                     </div>
                                 </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="servedAreas">Regiões de Atendimento</Label>
+                                    <Input
+                                        id="servedAreas"
+                                        name="servedAreas"
+                                        defaultValue={employee.employeeProfile?.servedAreas.join(", ") || ""}
+                                        placeholder="Ex: Centro, Jardins, Setor Bueno"
+                                    />
+                                    <p className="text-[10px] text-muted-foreground italic">Separe as regiões por vírgulas.</p>
+                                </div>
                                 <Button type="submit">Salvar Alterações</Button>
                             </form>
                         </CardContent>

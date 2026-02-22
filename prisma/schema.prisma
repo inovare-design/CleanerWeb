@@ -81,6 +81,7 @@ model Customer {
   document         String?
   birthDate        DateTime?
   notes            String?
+  area             String?
   bedrooms         Int?
   bathrooms        Int?
   footage          String?
@@ -106,6 +107,7 @@ model Employee {
   latitude     Float?            // Localização em tempo real
   longitude    Float?           // Localização em tempo real
   lastLocationUpdate DateTime?  // Última atualização de posição
+  servedAreas  String[]          @default([])
   tenantId     String
   appointments Appointment[]
   tenant       Tenant            @relation(fields: [tenantId], references: [id])

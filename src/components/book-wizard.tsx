@@ -14,6 +14,8 @@ import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { bookAppointment } from "@/actions/book-appointment";
 import { useRouter } from "next/navigation";
+import { getStaffAvailability } from "@/actions/get-staff-availability";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Tipos trazidos do Server Component
 type Service = { id: string; name: string; description: string | null; price: number; durationMin: number };
@@ -22,14 +24,17 @@ type Employee = { id: string; user: { name: string | null }; color: string | nul
 export default function BookWizard({
     services,
     employees,
-    userAddress
+    userAddress,
+    allRegions
 }: {
     services: Service[],
     employees: Employee[],
-    userAddress: string
+    userAddress: string,
+    allRegions: string[]
 }) {
     const [step, setStep] = useState(1);
     const [isLoading, setIsLoading] = useState(false);
+    const [isFetchingStaff, setIsFetchingStaff] = useState(false);
     const [error, setError] = useState("");
     const router = useRouter();
 
@@ -39,14 +44,30 @@ export default function BookWizard({
     const [date, setDate] = useState<Date | undefined>(new Date());
     const [time, setTime] = useState<string>("");
     const [address, setAddress] = useState(userAddress);
+    const [region, setRegion] = useState("");
     const [notes, setNotes] = useState("");
     const [warnings, setWarnings] = useState("");
+    const [availableStaff, setAvailableStaff] = useState<any[]>([]);
     const [priorityAreas, setPriorityAreas] = useState("");
     const [customDuration, setCustomDuration] = useState("");
 
-    const handleNext = () => {
+    const fetchStaff = async () => {
+        if (!date || !region) return;
+        setIsFetchingStaff(true);
+        const result = await getStaffAvailability(date.toISOString().split('T')[0], region);
+        if (result.staff) {
+            setAvailableStaff(result.staff);
+        }
+        setIsFetchingStaff(false);
+    };
+
+    const handleNext = async () => {
         if (step === 1 && !selectedService) return;
-        if (step === 3 && (!date || !time || !address)) return;
+        if (step === 2) {
+            if (!date || !address || !region) return;
+            await fetchStaff();
+        }
+        if (step === 3 && (!selectedEmployee || !time)) return;
         setStep(prev => prev + 1);
     };
 
@@ -66,6 +87,7 @@ export default function BookWizard({
         formData.append("address", address);
         formData.append("notes", notes);
         formData.append("warnings", warnings);
+        formData.append("region", region);
         formData.append("priorityAreas", priorityAreas);
         formData.append("customDuration", customDuration);
 
@@ -95,7 +117,7 @@ export default function BookWizard({
                             {s}
                         </div>
                         <span className="text-[10px] mt-1 text-gray-500 uppercase font-medium text-center">
-                            {s === 1 ? "Serviço" : s === 2 ? "Equipe" : s === 3 ? "Data" : s === 4 ? "Detalhes" : "Revisão"}
+                            {s === 1 ? "Serviço" : s === 2 ? "Data / Local" : s === 3 ? "Equipe / Hora" : s === 4 ? "Detalhes" : "Revisão"}
                         </span>
                     </div>
                 ))}
@@ -131,94 +153,146 @@ export default function BookWizard({
                         </div>
                     )}
 
-                    {/* STEP 2: PROFISSIONAL */}
+                    {/* STEP 2: DATA E LOCAL */}
                     {step === 2 && (
-                        <div className="space-y-4">
-                            <h2 className="text-xl font-semibold">Prefere alguém específico?</h2>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div
-                                    onClick={() => setSelectedEmployee("any")}
-                                    className={cn(
-                                        "p-4 rounded-xl border-2 cursor-pointer transition-all flex flex-col items-center text-center gap-2",
-                                        selectedEmployee === "any" ? "border-blue-600 bg-blue-50/50" : "border-gray-100 bg-white"
-                                    )}
-                                >
-                                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
-                                        <Clock className="w-6 h-6" />
-                                    </div>
-                                    <span className="font-medium text-sm">Qualquer disponível</span>
-                                    <span className="text-[10px] text-gray-400">Mais rápido</span>
-                                </div>
-                                {employees.map(emp => (
-                                    <div
-                                        key={emp.id}
-                                        onClick={() => setSelectedEmployee(emp.id)}
-                                        className={cn(
-                                            "p-4 rounded-xl border-2 cursor-pointer transition-all flex flex-col items-center text-center gap-2",
-                                            selectedEmployee === emp.id ? "border-blue-600 bg-blue-50/50" : "border-gray-100 bg-white"
-                                        )}
-                                    >
-                                        <div
-                                            className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold"
-                                            style={{ backgroundColor: emp.color || '#000' }}
-                                        >
-                                            {emp.user.name?.substring(0, 2).toUpperCase()}
-                                        </div>
-                                        <span className="font-medium text-sm">{emp.user.name}</span>
-                                        <div className="flex items-center text-[10px] text-yellow-500">
-                                            <Star className="w-3 h-3 fill-current" /> 4.9
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* STEP 3: DATA E HORA */}
-                    {step === 3 && (
                         <div className="space-y-6">
-                            <h2 className="text-xl font-semibold">Quando podemos ir?</h2>
+                            <h2 className="text-xl font-semibold text-center">Quando e onde?</h2>
 
-                            <div className="flex flex-col md:flex-row gap-6">
+                            <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">
                                 <Calendar
                                     mode="single"
                                     selected={date}
                                     onSelect={setDate}
-                                    className="rounded-md border mx-auto"
+                                    className="rounded-md border mx-auto bg-white shadow-sm"
                                     locale={ptBR}
                                     disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                                 />
-                                <div className="flex-1">
-                                    <h4 className="text-sm font-medium mb-3 text-muted-foreground">Horários Disponíveis</h4>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        {hours.map(h => (
-                                            <Button
-                                                key={h}
-                                                variant={time === h ? "default" : "outline"}
-                                                size="sm"
-                                                onClick={() => setTime(h)}
-                                                className={cn(time === h && "bg-blue-600 hover:bg-blue-700")}
-                                            >
-                                                {h}
-                                            </Button>
-                                        ))}
+                                <div className="flex-1 w-full space-y-6">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="region">Sua Região / Bairro</Label>
+                                        <Select onValueChange={setRegion} value={region}>
+                                            <SelectTrigger id="region" className="w-full">
+                                                <SelectValue placeholder="Selecione sua região" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {allRegions.map(r => (
+                                                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                                                ))}
+                                                {allRegions.length === 0 && (
+                                                    <div className="p-2 text-xs text-muted-foreground text-center">Nenhuma região cadastrada</div>
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                        <p className="text-[10px] text-muted-foreground">Mostraremos apenas os profissionais que atendem sua área.</p>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="address">Endereço Completo</Label>
+                                        <div className="relative">
+                                            <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                                            <Input
+                                                id="address"
+                                                placeholder="Rua, Número, Complemento..."
+                                                value={address}
+                                                onChange={(e) => setAddress(e.target.value)}
+                                                className="pl-9"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    )}
 
-                            <div className="space-y-2">
-                                <Label htmlFor="address">Endereço do Serviço</Label>
-                                <div className="relative">
-                                    <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                                    <Input
-                                        id="address"
-                                        placeholder="Seu endereço completo"
-                                        value={address}
-                                        onChange={(e) => setAddress(e.target.value)}
-                                        className="pl-9"
-                                    />
-                                </div>
+                    {/* STEP 3: EQUIPE E HORA */}
+                    {step === 3 && (
+                        <div className="space-y-6">
+                            <div className="text-center space-y-1">
+                                <h2 className="text-xl font-semibold">Escolha quem e quando</h2>
+                                <p className="text-xs text-muted-foreground">Profissionais disponíveis em {region} em {date && format(date, "dd/MM")}</p>
                             </div>
+
+                            {isFetchingStaff ? (
+                                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                                    <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                                    <p className="text-sm text-muted-foreground">Buscando profissionais disponíveis...</p>
+                                </div>
+                            ) : availableStaff.length === 0 ? (
+                                <div className="text-center py-12 border-2 border-dashed rounded-xl space-y-2">
+                                    <User className="w-8 h-8 mx-auto text-gray-300" />
+                                    <p className="text-sm font-medium text-gray-500">Nenhum profissional disponível para esta data/região.</p>
+                                    <Button variant="link" onClick={() => setStep(2)} className="text-blue-600">Tentar outra data ou área</Button>
+                                </div>
+                            ) : (
+                                <div className="space-y-6">
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                        {availableStaff.map(staff => (
+                                            <div
+                                                key={staff.id}
+                                                onClick={() => {
+                                                    setSelectedEmployee(staff.id);
+                                                    setTime(""); // Reset time when staff changes
+                                                }}
+                                                className={cn(
+                                                    "p-3 rounded-xl border-2 cursor-pointer transition-all flex flex-col items-center text-center gap-2",
+                                                    selectedEmployee === staff.id ? "border-blue-600 bg-blue-50/50" : "border-gray-100 bg-white"
+                                                )}
+                                            >
+                                                <div
+                                                    className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm"
+                                                    style={{ backgroundColor: staff.color || '#000' }}
+                                                >
+                                                    {staff.name.substring(0, 2).toUpperCase()}
+                                                </div>
+                                                <span className="font-medium text-xs truncate w-full">{staff.name}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {selectedEmployee && (
+                                        <div className="space-y-3 pt-4 border-t">
+                                            <h4 className="text-sm font-semibold flex items-center gap-2">
+                                                <Clock className="w-4 h-4 text-blue-600" />
+                                                Horários Disponíveis
+                                            </h4>
+                                            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                                                {/* Gerar slots baseado na workday e appointments do staff selecionado */}
+                                                {(() => {
+                                                    const staff = availableStaff.find(s => s.id === selectedEmployee);
+                                                    if (!staff) return null;
+
+                                                    // Gerar slots a cada 30 mins das 08:00 às 18:00 (simplificado para exemplo)
+                                                    const slots = [];
+                                                    for (let h = 8; h < 18; h++) {
+                                                        const HH = h.toString().padStart(2, '0');
+                                                        slots.push(`${HH}:00`, `${HH}:30`);
+                                                    }
+
+                                                    return slots.map(s => {
+                                                        const isBooked = staff.booked.some((b: any) => s >= b.start && s < b.end);
+                                                        return (
+                                                            <Button
+                                                                key={s}
+                                                                variant={time === s ? "default" : "outline"}
+                                                                size="sm"
+                                                                disabled={isBooked}
+                                                                onClick={() => setTime(s)}
+                                                                className={cn(
+                                                                    "h-8 text-[10px]",
+                                                                    time === s && "bg-blue-600 hover:bg-blue-700",
+                                                                    isBooked && "opacity-20 cursor-not-allowed bg-gray-50"
+                                                                )}
+                                                            >
+                                                                {s}
+                                                            </Button>
+                                                        );
+                                                    });
+                                                })()}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -300,16 +374,16 @@ export default function BookWizard({
                                             <User className="w-4 h-4 mr-2 opacity-70" />
                                             {selectedEmployee === "any"
                                                 ? "Qualquer disponível"
-                                                : employees.find(e => e.id === selectedEmployee)?.user.name}
+                                                : availableStaff.find(e => e.id === selectedEmployee)?.name || employees.find(e => e.id === selectedEmployee)?.user.name}
                                         </p>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <p className="text-xs text-blue-600 uppercase font-bold mb-1">Local</p>
+                                    <p className="text-xs text-blue-600 uppercase font-bold mb-1">Local & Região</p>
                                     <p className="text-sm font-medium flex items-center">
                                         <MapPin className="w-4 h-4 mr-2 opacity-70" />
-                                        {address}
+                                        {address} ({region})
                                     </p>
                                 </div>
 
@@ -371,10 +445,13 @@ export default function BookWizard({
                                 onClick={handleNext}
                                 disabled={
                                     (step === 1 && !selectedService) ||
-                                    (step === 3 && (!date || !time || !address))
+                                    (step === 2 && (!date || !address || !region)) ||
+                                    (step === 3 && (!selectedEmployee || !time)) ||
+                                    isFetchingStaff
                                 }
                                 className="bg-blue-600 hover:bg-blue-700"
                             >
+                                {isFetchingStaff ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                                 Próximo <ChevronRight className="w-4 h-4 ml-2" />
                             </Button>
                         ) : (

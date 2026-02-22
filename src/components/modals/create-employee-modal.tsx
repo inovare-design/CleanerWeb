@@ -131,6 +131,15 @@ export function CreateEmployeeModal({ profiles }: CreateEmployeeModalProps) {
                                 <span className="text-xs text-muted-foreground">Cor na agenda/mapa.</span>
                             </div>
                         </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="servedAreas">Regiões de Atendimento</Label>
+                            <Input
+                                id="servedAreas"
+                                name="servedAreas"
+                                placeholder="Centro, Jardins, Setor Bueno..."
+                            />
+                            <p className="text-[10px] text-muted-foreground italic">Separe por vírgulas (Ex: Centro, Bueno, Oeste)</p>
+                        </div>
                     </div>
                     <DialogFooter>
                         <Button type="submit" disabled={isLoading} className="bg-emerald-600 hover:bg-emerald-700 w-full font-bold">

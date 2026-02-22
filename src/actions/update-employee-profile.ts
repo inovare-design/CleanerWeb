@@ -9,6 +9,7 @@ const UpdateEmployeeProfileSchema = z.object({
     userId: z.string().uuid(),
     phone: z.string().optional(),
     color: z.string().min(4).max(7), // Hex code
+    servedAreas: z.string().optional(),
 });
 
 export async function updateEmployeeProfile(formData: FormData) {
@@ -22,13 +23,14 @@ export async function updateEmployeeProfile(formData: FormData) {
         userId: formData.get("userId"),
         phone: formData.get("phone"),
         color: formData.get("color"),
+        servedAreas: formData.get("servedAreas"),
     });
 
     if (!validatedFields.success) {
         return { error: "Campos inválidos." };
     }
 
-    const { userId, phone, color } = validatedFields.data;
+    const { userId, phone, color, servedAreas } = validatedFields.data;
 
     try {
         await db.employee.update({
@@ -36,6 +38,7 @@ export async function updateEmployeeProfile(formData: FormData) {
             data: {
                 phone,
                 color,
+                servedAreas: servedAreas ? servedAreas.split(',').map(s => s.trim()).filter(Boolean) : [],
             }
         });
 

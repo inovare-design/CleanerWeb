@@ -20,28 +20,36 @@ async function getData(userId: string) {
     });
 
     // Formatar serviços para serialização (Decimal -> number)
-    const formattedServices = services.map(s => ({
+    const formattedServices = services.map((s: any) => ({
         ...s,
         price: Number(s.price)
     }));
 
     // Formatar funcionários
-    const formattedEmployees = employees.map(e => ({
+    const formattedEmployees = employees.map((e: any) => ({
         id: e.employeeProfile?.id || "",
         user: { name: e.name },
         color: e.employeeProfile?.color || "#000"
-    })).filter(e => e.id !== ""); // Remove se não tiver profile
+    })).filter((e: any) => e.id !== ""); // Remove se não tiver profile
 
     const userAddress = user?.customerProfile?.address || "";
 
-    return { services: formattedServices, employees: formattedEmployees, userAddress };
+    // Extrair todas as regiões únicas atendidas
+    const allRegions = Array.from(new Set(employees.flatMap((e: any) => e.employeeProfile?.servedAreas || []))).sort() as string[];
+
+    return {
+        services: formattedServices,
+        employees: formattedEmployees,
+        userAddress,
+        allRegions
+    };
 }
 
 export default async function BookPage() {
     const session = await auth();
     if (!session?.user?.id) redirect("/login");
 
-    const { services, employees, userAddress } = await getData(session.user.id);
+    const { services, employees, userAddress, allRegions } = await getData(session.user.id);
 
     return (
         <div className="space-y-6">
@@ -56,6 +64,7 @@ export default async function BookPage() {
                 services={services}
                 employees={employees}
                 userAddress={userAddress}
+                allRegions={allRegions}
             />
         </div>
     );

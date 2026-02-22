@@ -15,7 +15,8 @@ const BookSchema = z.object({
     address: z.string().min(1, "Endereço é obrigatório"),
     warnings: z.string().optional(),
     priorityAreas: z.string().optional(),
-    customDuration: z.string().optional()
+    customDuration: z.string().optional(),
+    region: z.string().optional()
 });
 
 export async function bookAppointment(formData: FormData) {
@@ -34,6 +35,7 @@ export async function bookAppointment(formData: FormData) {
         warnings: formData.get("warnings"),
         priorityAreas: formData.get("priorityAreas"),
         customDuration: formData.get("customDuration"),
+        region: formData.get("region"),
     };
 
     const validatedFields = BookSchema.safeParse(rawData);
@@ -51,7 +53,8 @@ export async function bookAppointment(formData: FormData) {
         address,
         warnings,
         priorityAreas,
-        customDuration
+        customDuration,
+        region
     } = validatedFields.data;
 
     try {
@@ -102,6 +105,15 @@ export async function bookAppointment(formData: FormData) {
                 serviceId: service.id,
                 tenantId: user.tenantId!,
                 employeeId: employeeId && employeeId !== "any" ? employeeId : undefined
+            }
+        });
+
+        // 5. Atualizar Perfil do Cliente com a região e endereço se não existirem
+        await db.customerProfile.update({
+            where: { id: user.customerProfile.id },
+            data: {
+                area: region || undefined,
+                address: address || undefined,
             }
         });
 
