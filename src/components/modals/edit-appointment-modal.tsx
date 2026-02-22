@@ -41,7 +41,7 @@ type PropType = {
     };
     clients: { id: string; name: string | null; email: string; customerProfile?: { address: string | null } | null }[];
     services: { id: string; name: string; durationMin: number; price: number }[];
-    employees: { id: string; name: string | null }[];
+    employees: { id: string; name: string | null; employeeProfile?: { id: string } | null }[];
 };
 
 export function EditAppointmentModal({ open, onOpenChange, appointment, clients, services, employees }: PropType) {
@@ -107,10 +107,10 @@ export function EditAppointmentModal({ open, onOpenChange, appointment, clients,
         fetchSlots();
     }, [selectedDate, selectedServiceId, services, appointment.startTime, appointment.serviceId, selectedTime]);
 
-    const handleClientChange = (clientId: string) => {
-        setSelectedClientId(clientId);
+    const handleClientChange = (customerId: string) => {
+        setSelectedClientId(customerId);
         // Only auto-fill address if it's empty or user wants (simple logic: update if changed)
-        const client = clients.find(c => c.id === clientId);
+        const client = clients.find(c => c.id === customerId);
         if (client?.customerProfile?.address) {
             setAddress(client.customerProfile.address);
         }
@@ -133,6 +133,7 @@ export function EditAppointmentModal({ open, onOpenChange, appointment, clients,
         formData.append("address", address);
         if (notes) formData.append("notes", notes);
         formData.append("status", status);
+        formData.append("employeeId", selectedEmployeeId || "unassigned");
 
         const result = await updateAppointment(formData);
 
@@ -173,6 +174,9 @@ export function EditAppointmentModal({ open, onOpenChange, appointment, clients,
                                     <SelectContent>
                                         <SelectItem value="PENDING">Pendente</SelectItem>
                                         <SelectItem value="CONFIRMED">Confirmado</SelectItem>
+                                        <SelectItem value="EN_ROUTE">A Caminho</SelectItem>
+                                        <SelectItem value="IN_PROGRESS">Em Andamento</SelectItem>
+                                        <SelectItem value="AWAITING_CONFIRMATION">Aguardando Autorização</SelectItem>
                                         <SelectItem value="COMPLETED">Concluído</SelectItem>
                                         <SelectItem value="CANCELLED">Cancelado</SelectItem>
                                     </SelectContent>
@@ -231,8 +235,8 @@ export function EditAppointmentModal({ open, onOpenChange, appointment, clients,
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="unassigned">-- A definir --</SelectItem>
-                                        {employees.map(emp => (
-                                            <SelectItem key={emp.id} value={emp.id}>
+                                        {employees.filter(e => e.employeeProfile).map(emp => (
+                                            <SelectItem key={emp.id} value={emp.employeeProfile!.id}>
                                                 {emp.name}
                                             </SelectItem>
                                         ))}

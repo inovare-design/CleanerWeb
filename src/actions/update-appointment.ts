@@ -14,7 +14,7 @@ const UpdateAppointmentSchema = z.object({
     time: z.string().min(1, "Hora é obrigatória"),
     address: z.string().min(1, "Endereço é obrigatório"),
     notes: z.string().optional(),
-    status: z.enum(["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"]).optional(),
+    status: z.enum(["PENDING", "CONFIRMED", "EN_ROUTE", "IN_PROGRESS", "AWAITING_CONFIRMATION", "COMPLETED", "CANCELLED"]).optional(),
 });
 
 export async function updateAppointment(formData: FormData) {
