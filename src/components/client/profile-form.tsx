@@ -21,6 +21,7 @@ interface ProfileFormProps {
     customer: {
         phone?: string | null;
         address?: string | null;
+        area?: string | null;
         bedrooms?: number | null;
         bathrooms?: number | null;
         footage?: string | null;
@@ -76,8 +77,32 @@ export function ProfileForm({ user, customer }: ProfileFormProps) {
                             <Input id="phone" name="phone" defaultValue={customer.phone || ""} placeholder="+351 912 345 678" className="h-12 rounded-xl border-zinc-200 focus:border-blue-500 font-medium" />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="address" className="text-xs font-bold text-zinc-500">Endereço</Label>
-                            <Input id="address" name="address" defaultValue={customer.address || ""} placeholder="Rua, número, cidade" className="h-12 rounded-xl border-zinc-200 focus:border-blue-500 font-medium" />
+                            <Label htmlFor="address" className="text-xs font-bold text-zinc-500">Endereço Completo</Label>
+                            <Input id="address" name="address" defaultValue={customer.address || ""} placeholder="Rua, número, cidade" required className="h-12 rounded-xl border-zinc-200 focus:border-blue-500 font-medium" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="area" className="text-xs font-bold text-zinc-500">Sua Região / Bairro</Label>
+                            <div className="grid grid-cols-2 gap-2">
+                                {['NORTH', 'SOUTH', 'EAST', 'WEST'].map((r) => (
+                                    <label
+                                        key={r}
+                                        className={`flex items-center justify-center h-12 rounded-xl border-2 cursor-pointer transition-all font-bold text-sm ${customer.area === r
+                                                ? "border-blue-600 bg-blue-50 text-blue-600"
+                                                : "border-zinc-100 bg-white text-zinc-400 hover:border-zinc-200"
+                                            }`}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="area"
+                                            value={r}
+                                            defaultChecked={customer.area === r}
+                                            className="sr-only"
+                                        />
+                                        {r}
+                                    </label>
+                                ))}
+                            </div>
+                            <p className="text-[10px] text-zinc-400">Isso nos ajuda a encontrar o melhor profissional para você.</p>
                         </div>
                     </CardContent>
                 </Card>

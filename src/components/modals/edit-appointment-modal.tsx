@@ -25,6 +25,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 type PropType = {
     open: boolean;
@@ -142,6 +143,7 @@ export function EditAppointmentModal({ open, onOpenChange, appointment, clients,
         if (result.error) {
             setError(result.error);
         } else {
+            toast.success("Agendamento atualizado com sucesso!");
             onOpenChange(false);
         }
     }

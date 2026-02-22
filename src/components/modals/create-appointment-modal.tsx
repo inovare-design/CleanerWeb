@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { getAvailableSlots } from "@/actions/get-available-slots";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import {
     Dialog,
     DialogContent,
@@ -109,6 +110,7 @@ export function CreateAppointmentModal({ clients, services, employees, minDurati
         if (result.error) {
             setError(result.error);
         } else {
+            toast.success("Agendamento criado com sucesso!");
             setOpen(false);
             // Reset form logic if needed
         }

@@ -25,11 +25,13 @@ export default function BookWizard({
     services,
     employees,
     userAddress,
+    userRegion,
     allRegions
 }: {
     services: Service[],
     employees: Employee[],
     userAddress: string,
+    userRegion: string,
     allRegions: string[]
 }) {
     const [step, setStep] = useState(1);
@@ -44,7 +46,7 @@ export default function BookWizard({
     const [date, setDate] = useState<Date | undefined>(new Date());
     const [time, setTime] = useState<string>("");
     const [address, setAddress] = useState(userAddress);
-    const [region, setRegion] = useState("");
+    const [region, setRegion] = useState(userRegion);
     const [notes, setNotes] = useState("");
     const [warnings, setWarnings] = useState("");
     const [availableStaff, setAvailableStaff] = useState<any[]>([]);
@@ -170,19 +172,27 @@ export default function BookWizard({
                                     />
                                 </div>
                                 <div className="flex-1 w-full space-y-6">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="region">Sua Região / Bairro</Label>
-                                        <Select onValueChange={setRegion} value={region}>
-                                            <SelectTrigger id="region" className="w-full">
-                                                <SelectValue placeholder="Selecione sua região" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {['NORTH', 'SOUTH', 'EAST', 'WEST'].map(r => (
-                                                    <SelectItem key={r} value={r}>{r}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <p className="text-[10px] text-muted-foreground">Mostraremos apenas os profissionais que atendem sua área.</p>
+                                    <div className="space-y-4">
+                                        <div className="p-4 rounded-xl bg-blue-50/50 border border-blue-100">
+                                            <Label className="text-blue-600 font-bold uppercase text-[10px] tracking-widest block mb-2">Sua Região</Label>
+                                            <div className="flex items-center justify-between">
+                                                <span className="font-bold text-zinc-900">{region || "Não definida"}</span>
+                                                <Button
+                                                    variant="link"
+                                                    className="h-auto p-0 text-blue-600 text-xs font-bold"
+                                                    onClick={() => router.push('/app/profile')}
+                                                >
+                                                    Alterar no Perfil
+                                                </Button>
+                                            </div>
+                                            <p className="text-[10px] text-muted-foreground mt-2">Mostraremos apenas os profissionais que atendem sua área.</p>
+                                        </div>
+
+                                        {!region && (
+                                            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-700 font-medium">
+                                                Atenção: Você precisa definir sua região no perfil para ver profissionais disponíveis.
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="space-y-2">

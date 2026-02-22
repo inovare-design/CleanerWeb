@@ -33,6 +33,8 @@ async function getData(userId: string) {
     })).filter((e: any) => e.id !== ""); // Remove se não tiver profile
 
     const userAddress = user?.customerProfile?.address || "";
+    const userRegion = user?.customerProfile?.area || "";
+    const userName = user?.name || "";
 
     // Extrair todas as regiões únicas atendidas
     const allRegions = Array.from(new Set(employees.flatMap((e: any) => e.employeeProfile?.servedAreas || []))).sort() as string[];
@@ -41,6 +43,8 @@ async function getData(userId: string) {
         services: formattedServices,
         employees: formattedEmployees,
         userAddress,
+        userRegion,
+        userName,
         allRegions
     };
 }
@@ -49,14 +53,14 @@ export default async function BookPage() {
     const session = await auth();
     if (!session?.user?.id) redirect("/login");
 
-    const { services, employees, userAddress, allRegions } = await getData(session.user.id);
+    const { services, employees, userAddress, userRegion, userName, allRegions } = await getData(session.user.id);
 
     return (
         <div className="space-y-6">
             <div className="text-center space-y-2 mb-8">
-                <h1 className="text-3xl font-bold tracking-tight">Novo Agendamento</h1>
-                <p className="text-muted-foreground">
-                    Siga os passos para agendar sua limpeza.
+                <h1 className="text-3xl font-black tracking-tight text-zinc-900 leading-tight">Olá, {userName}! 👋<br />Vamos agendar sua limpeza?</h1>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                    Confirme os detalhes abaixo e escolha o melhor horário para você.
                 </p>
             </div>
 
@@ -64,6 +68,7 @@ export default async function BookPage() {
                 services={services}
                 employees={employees}
                 userAddress={userAddress}
+                userRegion={userRegion}
                 allRegions={allRegions}
             />
         </div>

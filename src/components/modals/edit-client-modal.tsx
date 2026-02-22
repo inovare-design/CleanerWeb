@@ -19,6 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { updateClient } from "@/actions/update-client";
 import { useRouter } from "next/navigation";
 import { Pencil } from "lucide-react";
+import { toast } from "sonner";
 
 interface EditClientModalProps {
     client: any;
@@ -115,6 +116,7 @@ export function EditClientModal({ client, trigger }: EditClientModalProps) {
         if (result.error) {
             setError(result.error);
         } else if (result.success) {
+            toast.success("Perfil do cliente atualizado!");
             setOpen(false);
             router.refresh();
         }

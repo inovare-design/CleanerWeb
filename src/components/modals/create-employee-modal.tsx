@@ -17,6 +17,7 @@ import { Plus } from "lucide-react";
 import { createEmployee } from "@/actions/create-employee";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Checkbox } from "../ui/checkbox";
+import { toast } from "sonner";
 
 interface CreateEmployeeModalProps {
     profiles: any[];
@@ -40,6 +41,7 @@ export function CreateEmployeeModal({ profiles }: CreateEmployeeModalProps) {
         if (result.error) {
             setError(result.error);
         } else {
+            toast.success("Funcionário criado com sucesso!");
             setOpen(false);
         }
     }

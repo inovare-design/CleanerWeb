@@ -26,6 +26,7 @@ export default async function ClientProfilePage() {
                 customer={{
                     phone: user.customerProfile.phone,
                     address: user.customerProfile.address,
+                    area: user.customerProfile.area,
                     bedrooms: user.customerProfile.bedrooms,
                     bathrooms: user.customerProfile.bathrooms,
                     footage: user.customerProfile.footage,

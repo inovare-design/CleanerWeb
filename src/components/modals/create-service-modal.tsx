@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
 import { createService } from "@/actions/create-service";
+import { toast } from "sonner";
 
 export function CreateServiceModal() {
     const [open, setOpen] = useState(false);
@@ -34,6 +35,7 @@ export function CreateServiceModal() {
         if (result.error) {
             setError(result.error);
         } else {
+            toast.success("Serviço adicionado ao catálogo!");
             setOpen(false);
         }
     }

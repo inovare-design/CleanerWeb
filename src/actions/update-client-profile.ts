@@ -22,10 +22,15 @@ export async function updateClientProfile(formData: FormData) {
     const name = formData.get("name") as string;
     const phone = formData.get("phone") as string;
     const address = formData.get("address") as string;
+    const area = formData.get("area") as string;
     const bedrooms = formData.get("bedrooms") as string;
     const bathrooms = formData.get("bathrooms") as string;
     const footage = formData.get("footage") as string;
     const accessInfo = formData.get("accessInfo") as string;
+
+    if (!address) {
+        return { error: "Endereço é obrigatório." };
+    }
 
     try {
         // Update name on User model
@@ -40,6 +45,7 @@ export async function updateClientProfile(formData: FormData) {
             data: {
                 phone,
                 address,
+                area,
                 bedrooms: bedrooms ? parseInt(bedrooms) : null,
                 bathrooms: bathrooms ? parseInt(bathrooms) : null,
                 footage,

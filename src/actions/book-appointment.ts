@@ -108,8 +108,8 @@ export async function bookAppointment(formData: FormData) {
             }
         });
 
-        // 5. Atualizar Perfil do Cliente com a região e endereço se não existirem
-        await db.customerProfile.update({
+        // 5. Atualizar Perfil do Cliente com a região e endereço se houver algo novo
+        await db.customer.update({
             where: { id: user.customerProfile.id },
             data: {
                 area: region || undefined,
