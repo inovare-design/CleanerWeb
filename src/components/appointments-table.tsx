@@ -72,7 +72,7 @@ export function AppointmentsTable({
 }: AppointmentsTableProps) {
     const [query, setQuery] = useState("");
     const [filterType, setFilterType] = useState<string>("all");
-    const [filterStatus, setFilterStatus] = useState<string>("all");
+    const [filterStatus, setFilterStatus] = useState<string>("active");
     const [filterToday, setFilterToday] = useState(false);
     const [sortKey, setSortKey] = useState<string>("date");
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
