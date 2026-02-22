@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CheckCircle, Calendar as CalendarIcon, User, MapPin, Clock, ChevronLeft, ChevronRight, Loader2, Star } from "lucide-react";
+import { CheckCircle, Calendar as CalendarIcon, User, MapPin, Clock, ChevronLeft, ChevronRight, Loader2, Star, AlertTriangle, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { bookAppointment } from "@/actions/book-appointment";
@@ -52,6 +52,7 @@ export default function BookWizard({
     const [availableStaff, setAvailableStaff] = useState<any[]>([]);
     const [priorityAreas, setPriorityAreas] = useState("");
     const [customDuration, setCustomDuration] = useState("");
+    const [agreedToTerms, setAgreedToTerms] = useState(false);
 
     const fetchStaff = async () => {
         if (!date || !region) return;
@@ -92,6 +93,7 @@ export default function BookWizard({
         formData.append("region", region);
         formData.append("priorityAreas", priorityAreas);
         formData.append("customDuration", customDuration);
+        formData.append("agreedToTerms", agreedToTerms ? "true" : "false");
 
         const result = await bookAppointment(formData);
 
@@ -430,6 +432,40 @@ export default function BookWizard({
                                 />
                             </div>
 
+                            {/* Cancellation Policy Agreement */}
+                            <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-5 space-y-3">
+                                <div className="flex items-start gap-3">
+                                    <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                                    <div>
+                                        <p className="font-bold text-amber-800 text-sm">Política de Cancelamento</p>
+                                        <ul className="text-xs text-amber-700 mt-2 space-y-1.5 leading-relaxed">
+                                            <li>• Cancelamentos devem ser feitos com <strong>no mínimo 24 horas</strong> de antecedência.</li>
+                                            <li>• Cancelamentos com menos de 24h poderão ter cobrança parcial.</li>
+                                            <li>• Reagendamentos estão sujeitos à disponibilidade da equipe.</li>
+                                            <li>• Não comparecimento sem aviso prévio será considerado serviço prestado.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <label className={cn(
+                                    "flex items-center gap-3 cursor-pointer p-3 rounded-xl border-2 transition-all",
+                                    agreedToTerms ? "border-emerald-400 bg-emerald-50" : "border-amber-200 bg-white hover:border-amber-300"
+                                )}>
+                                    <input
+                                        type="checkbox"
+                                        checked={agreedToTerms}
+                                        onChange={(e) => setAgreedToTerms(e.target.checked)}
+                                        className="w-5 h-5 accent-emerald-600 rounded"
+                                    />
+                                    <span className={cn(
+                                        "text-sm font-bold",
+                                        agreedToTerms ? "text-emerald-700" : "text-zinc-600"
+                                    )}>
+                                        {agreedToTerms && <ShieldCheck className="w-4 h-4 inline mr-1" />}
+                                        Li e concordo com a política de cancelamento
+                                    </span>
+                                </label>
+                            </div>
+
                             {error && (
                                 <div className="bg-red-100 text-red-600 p-3 rounded-md text-sm text-center">
                                     {error}
@@ -466,7 +502,7 @@ export default function BookWizard({
                         ) : (
                             <Button
                                 onClick={handleSubmit}
-                                disabled={isLoading}
+                                disabled={isLoading || !agreedToTerms}
                                 className="bg-green-600 hover:bg-green-700 w-full ml-4"
                             >
                                 {isLoading ? (

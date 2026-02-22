@@ -154,6 +154,9 @@ model Appointment {
   customDuration         Int?
   cleanerConfirmationDate DateTime?
   proofImages            String[]            @default([])
+  clientNotes            String?
+  clientImages           String[]            @default([])
+  agreedToTerms          Boolean             @default(false)
   customer               Customer            @relation(fields: [customerId], references: [id])
   employee               Employee?           @relation(fields: [employeeId], references: [id])
   invoice                Invoice?            @relation(fields: [invoiceId], references: [id])

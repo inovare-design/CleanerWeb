@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { ConfirmServiceForm } from "@/components/client/confirm-service-form";
+import { AppointmentActions } from "@/components/client/appointment-actions";
 
 const timelineSteps = [
     { status: "PENDING", label: "Agendado", icon: Calendar },
@@ -244,6 +245,54 @@ export default async function AppointmentDetailPage(props: {
                     </CardContent>
                 </Card>
             )}
+
+            {/* Client Notes & Images */}
+            {appointment.clientNotes && (
+                <Card className="border-0 shadow-sm">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-black uppercase tracking-widest text-zinc-400 flex items-center gap-2">
+                            <MessageSquare className="w-4 h-4" />
+                            Seu Comentário para a Equipe
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pb-5">
+                        <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
+                            <p className="text-sm text-blue-800 leading-relaxed whitespace-pre-wrap">{appointment.clientNotes}</p>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {appointment.clientImages && appointment.clientImages.length > 0 && (
+                <Card className="border-0 shadow-sm">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-black uppercase tracking-widest text-zinc-400 flex items-center gap-2">
+                            <Camera className="w-4 h-4" />
+                            Suas Fotos de Referência
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pb-5">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            {appointment.clientImages.map((img: string, i: number) => (
+                                <a key={i} href={img} target="_blank" rel="noopener noreferrer" className="group">
+                                    <div className="aspect-square rounded-xl overflow-hidden bg-zinc-100 ring-1 ring-blue-100 group-hover:ring-blue-400 transition-all group-hover:shadow-lg">
+                                        <img src={img} alt={`Foto ${i + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                    </div>
+                                </a>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Appointment Management Actions */}
+            <AppointmentActions
+                appointmentId={appointment.id}
+                startTime={appointment.startTime}
+                status={appointment.status}
+                clientNotes={appointment.clientNotes}
+                clientImages={appointment.clientImages}
+            />
 
             {/* Client Confirmation Form */}
             {isAwaitingConfirmation && (

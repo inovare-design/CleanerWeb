@@ -17,7 +17,8 @@ const BookSchema = z.object({
     warnings: z.string().optional(),
     priorityAreas: z.string().optional(),
     customDuration: z.string().optional(),
-    region: z.string().optional()
+    region: z.string().optional(),
+    agreedToTerms: z.string().optional()
 });
 
 export async function bookAppointment(formData: FormData) {
@@ -37,6 +38,7 @@ export async function bookAppointment(formData: FormData) {
         priorityAreas: formData.get("priorityAreas"),
         customDuration: formData.get("customDuration"),
         region: formData.get("region"),
+        agreedToTerms: formData.get("agreedToTerms"),
     };
 
     const validatedFields = BookSchema.safeParse(rawData);
@@ -55,7 +57,8 @@ export async function bookAppointment(formData: FormData) {
         warnings,
         priorityAreas,
         customDuration,
-        region
+        region,
+        agreedToTerms
     } = validatedFields.data;
 
     try {
@@ -105,7 +108,8 @@ export async function bookAppointment(formData: FormData) {
                 customerId: user.customerProfile.id,
                 serviceId: service.id,
                 tenantId: user.tenantId!,
-                employeeId: employeeId && employeeId !== "any" ? employeeId : undefined
+                employeeId: employeeId && employeeId !== "any" ? employeeId : undefined,
+                agreedToTerms: agreedToTerms === "true"
             }
         });
 
