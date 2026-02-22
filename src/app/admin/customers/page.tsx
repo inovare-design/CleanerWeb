@@ -12,7 +12,10 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, MoreHorizontal, Mail, MapPin, Phone } from "lucide-react";
+import { Plus, Search, MoreHorizontal, Mail, MapPin, Phone, Trash, ExternalLink, User } from "lucide-react";
+import { deleteClient } from "@/actions/delete-client";
+import { EditClientModal } from "@/components/modals/edit-client-modal";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
@@ -167,12 +170,34 @@ export default async function CustomersPage(props: {
                                                     <MoreHorizontal className="h-4 w-4" />
                                                 </Button>
                                             </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
+                                            <DropdownMenuContent align="end" className="w-[160px]">
                                                 <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                                                <DropdownMenuItem>Ver Detalhes</DropdownMenuItem>
-                                                <DropdownMenuItem>Editar</DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => window.location.href = `/admin/customers/${client.id}`}>
+                                                    <ExternalLink className="mr-2 h-4 w-4" /> Ver Detalhes
+                                                </DropdownMenuItem>
+
+                                                <EditClientModal
+                                                    client={client}
+                                                    trigger={
+                                                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                                            <User className="mr-2 h-4 w-4" /> Editar Perfil
+                                                        </DropdownMenuItem>
+                                                    }
+                                                />
+
                                                 <DropdownMenuSeparator />
-                                                <DropdownMenuItem className="text-red-600">Excluir</DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    className="text-red-600"
+                                                    onClick={async () => {
+                                                        if (confirm("Tem certeza que deseja excluir este cliente?")) {
+                                                            const result = await deleteClient(client.id);
+                                                            if (result.success) toast.success(result.success);
+                                                            else toast.error(result.error);
+                                                        }
+                                                    }}
+                                                >
+                                                    <Trash className="mr-2 h-4 w-4" /> Excluir
+                                                </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>

@@ -22,6 +22,7 @@ import { Pencil } from "lucide-react";
 
 interface EditClientModalProps {
     client: any;
+    trigger?: React.ReactNode;
 }
 
 const WEEK_DAYS = [
@@ -34,7 +35,7 @@ const WEEK_DAYS = [
     { id: "dom", label: "Dom" },
 ];
 
-export function EditClientModal({ client }: EditClientModalProps) {
+export function EditClientModal({ client, trigger }: EditClientModalProps) {
     const [open, setOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
@@ -122,33 +123,36 @@ export function EditClientModal({ client }: EditClientModalProps) {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline">
-                    <Pencil className="mr-2 h-4 w-4" /> Editar Perfil
-                </Button>
+                {trigger || (
+                    <Button variant="outline">
+                        <Pencil className="mr-2 h-4 w-4" /> Editar Perfil
+                    </Button>
+                )}
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-                <form onSubmit={handleSubmit}>
+            <DialogContent className="sm:max-w-[800px] max-h-[95vh] overflow-y-auto">
+                <form onSubmit={handleSubmit} className="space-y-6 pt-2">
                     <DialogHeader>
                         <DialogTitle>Editar Cliente</DialogTitle>
                         <DialogDescription>
                             Atualize as informações, tipo e frequência de serviço.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="grid gap-6 py-4">
-                        {error && (
-                            <div className="bg-red-100 text-red-600 p-2 rounded-md text-sm">
-                                {error}
-                            </div>
-                        )}
 
+                    {error && (
+                        <div className="bg-red-100 text-red-600 p-2 rounded-md text-sm">
+                            {error}
+                        </div>
+                    )}
+
+                    <div className="grid gap-6">
                         {/* Dados Pessoais e Tipo */}
-                        <div className="space-y-4">
-                            <h3 className="text-sm font-medium text-muted-foreground border-b pb-1">Identificação</h3>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label>Tipo de Cliente</Label>
+                        <section className="space-y-3">
+                            <h3 className="text-xs font-semibold uppercase text-muted-foreground border-b pb-1">Identificação</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs">Tipo de Cliente</Label>
                                     <Select value={clientType} onValueChange={setClientType} name="_type_ignore">
-                                        <SelectTrigger>
+                                        <SelectTrigger className="h-8 text-xs">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -157,49 +161,74 @@ export function EditClientModal({ client }: EditClientModalProps) {
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="document">{clientType === "BUSINESS" ? "CNPJ" : "CPF"}</Label>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="document" className="text-xs">{clientType === "BUSINESS" ? "CNPJ" : "CPF"}</Label>
                                     <Input
                                         id="document"
                                         name="document"
+                                        className="h-8 text-xs"
                                         defaultValue={client.customerProfile?.document}
                                         placeholder={clientType === "BUSINESS" ? "00.000.000/0000-00" : "000.000.000-00"}
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="name">{clientType === "BUSINESS" ? "Razão Social / Nome Fantasia" : "Nome Completo"}</Label>
-                                    <Input id="name" name="name" defaultValue={client.name} required />
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="name" className="text-xs">{clientType === "BUSINESS" ? "Razão Social" : "Nome Completo"}</Label>
+                                    <Input id="name" name="name" className="h-8 text-xs" defaultValue={client.name} required />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="email">Email</Label>
-                                    <Input id="email" name="email" type="email" defaultValue={client.email} required />
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="email" className="text-xs">Email</Label>
+                                    <Input id="email" name="email" type="email" className="h-8 text-xs" defaultValue={client.email} required />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="phone">Telefone</Label>
-                                    <Input id="phone" name="phone" defaultValue={client.customerProfile?.phone} />
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="phone" className="text-xs">Telefone</Label>
+                                    <Input id="phone" name="phone" className="h-8 text-xs" defaultValue={client.customerProfile?.phone} />
                                 </div>
                                 {clientType === "PERSONAL" && (
-                                    <div className="space-y-2">
-                                        <Label htmlFor="birthDate">Data de Nascimento</Label>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="birthDate" className="text-xs">Nascimento</Label>
                                         <Input
                                             id="birthDate"
                                             name="birthDate"
                                             type="date"
+                                            className="h-8 text-xs"
                                             defaultValue={client.customerProfile?.birthDate ? new Date(client.customerProfile.birthDate).toISOString().split('T')[0] : ''}
                                         />
                                     </div>
                                 )}
                             </div>
-                        </div>
+                        </section>
 
-                        {/* Frequência de Serviço */}
-                        <div className="space-y-4">
-                            <h3 className="text-sm font-medium text-muted-foreground border-b pb-1">Preferência de Estilo & Frequência</h3>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label>Frequência Desejada</Label>
+                        {/* Localização */}
+                        <section className="space-y-3">
+                            <h3 className="text-xs font-semibold uppercase text-muted-foreground border-b pb-1">Localização</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                                <div className="md:col-span-2 space-y-1.5">
+                                    <Label htmlFor="address" className="text-xs">Endereço Completo</Label>
+                                    <Input id="address" name="address" className="h-8 text-xs" defaultValue={client.customerProfile?.address} />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="zipCode" className="text-xs">Postcode / CEP</Label>
+                                    <Input id="zipCode" name="zipCode" className="h-8 text-xs" defaultValue={client.customerProfile?.zipCode} placeholder="Postcode" />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="city" className="text-xs">Cidade</Label>
+                                    <Input id="city" name="city" className="h-8 text-xs" defaultValue={client.customerProfile?.city} placeholder="City" />
+                                </div>
+                                <div className="md:col-span-1 space-y-1.5">
+                                    <Label htmlFor="area" className="text-xs">Região (Area)</Label>
+                                    <Input id="area" name="area" className="h-8 text-xs" defaultValue={client.customerProfile?.area} placeholder="Region/Area" />
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Estilo & Frequência */}
+                        <section className="space-y-3">
+                            <h3 className="text-xs font-semibold uppercase text-muted-foreground border-b pb-1">Estilo & Frequência</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs">Frequência</Label>
                                     <Select value={frequency} onValueChange={setFrequency} name="_freq_ignore">
-                                        <SelectTrigger>
+                                        <SelectTrigger className="h-8 text-xs">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -212,35 +241,55 @@ export function EditClientModal({ client }: EditClientModalProps) {
                                 </div>
 
                                 {(frequency === "WEEKLY" || frequency === "BIWEEKLY") && (
-                                    <div className="space-y-2">
-                                        <Label htmlFor="timesPerWeek">Vezes por semana</Label>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="timesPerWeek" className="text-xs">Vezes por semana</Label>
                                         <Input
                                             id="timesPerWeek"
                                             name="timesPerWeek"
                                             type="number"
                                             min="1"
                                             max="7"
+                                            className="h-8 text-xs"
                                             defaultValue={existingDetails.timesPerWeek || 1}
                                         />
+                                    </div>
+                                )}
+
+                                {(frequency === "WEEKLY" || frequency === "BIWEEKLY" || frequency === "MONTHLY") && (
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="billingDay" className="text-xs">Dia Cobrança</Label>
+                                        <Select name="billingDay" defaultValue={String(client.customerProfile?.billingDay || "1")}>
+                                            <SelectTrigger className="h-8 text-xs">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                                                    <SelectItem key={day} value={String(day)}>
+                                                        Dia {day}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                 )}
                             </div>
 
                             {frequency !== "ONE_TIME" && (
-                                <div className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                                     <div className="space-y-2">
-                                        <Label>Dias de Preferência</Label>
-                                        <div className="flex flex-wrap gap-2">
+                                        <Label className="text-xs">Dias de Preferência</Label>
+                                        <div className="flex flex-wrap gap-1.5">
                                             {WEEK_DAYS.map((day) => (
-                                                <div key={day.id} className="flex items-center space-x-2 border p-2 rounded-md hover:bg-muted">
+                                                <div key={day.id} className="flex items-center space-x-1 border px-1.5 py-1 rounded hover:bg-muted bg-background">
                                                     <Checkbox
                                                         id={day.id}
+                                                        className="h-3.5 w-3.5"
                                                         checked={selectedDays.includes(day.id)}
                                                         onCheckedChange={() => handleDayToggle(day.id)}
                                                     />
                                                     <label
                                                         htmlFor={day.id}
-                                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                                        className="text-[10px] font-medium leading-none cursor-pointer"
                                                     >
                                                         {day.label}
                                                     </label>
@@ -249,28 +298,24 @@ export function EditClientModal({ client }: EditClientModalProps) {
                                         </div>
                                     </div>
 
-                                    {/* Configuração de Horários por Dia */}
                                     {selectedDays.length > 0 && (
-                                        <div className="space-y-3 bg-muted/30 p-4 rounded-lg border">
-                                            <h4 className="text-xs font-semibold uppercase text-muted-foreground">Horários por Dia Escolhido</h4>
-                                            <div className="grid gap-4">
+                                        <div className="space-y-2 bg-muted/20 p-2 rounded border border-dashed">
+                                            <h4 className="text-[10px] font-bold uppercase text-muted-foreground">Horários</h4>
+                                            <div className="grid gap-2">
                                                 {WEEK_DAYS.filter(d => selectedDays.includes(d.id)).map((day) => (
-                                                    <div key={day.id} className="grid grid-cols-3 items-center gap-4 border-b pb-2 last:border-0 last:pb-0">
-                                                        <span className="text-sm font-medium">{day.label}</span>
-                                                        <div className="space-y-1">
-                                                            <Label className="text-[10px] uppercase">Início</Label>
+                                                    <div key={day.id} className="grid grid-cols-5 items-center gap-2 border-b pb-1 last:border-0 last:pb-0">
+                                                        <span className="text-[10px] font-semibold col-span-1">{day.label}</span>
+                                                        <div className="col-span-2 flex items-center gap-1">
                                                             <Input
                                                                 type="time"
-                                                                className="h-8 text-xs"
+                                                                className="h-6 text-[10px] px-1"
                                                                 value={daySettings[day.id]?.startTime || ""}
                                                                 onChange={(e) => handleTimeChange(day.id, 'startTime', e.target.value)}
                                                             />
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <Label className="text-[10px] uppercase">Fim</Label>
+                                                            <span className="text-[10px]">às</span>
                                                             <Input
                                                                 type="time"
-                                                                className="h-8 text-xs"
+                                                                className="h-6 text-[10px] px-1"
                                                                 value={daySettings[day.id]?.endTime || ""}
                                                                 onChange={(e) => handleTimeChange(day.id, 'endTime', e.target.value)}
                                                             />
@@ -282,81 +327,55 @@ export function EditClientModal({ client }: EditClientModalProps) {
                                     )}
                                 </div>
                             )}
+                        </section>
 
-                            {(frequency === "WEEKLY" || frequency === "BIWEEKLY" || frequency === "MONTHLY") && (
-                                <div className="space-y-2">
-                                    <Label htmlFor="billingDay">Dia Preferencial de Cobrança</Label>
-                                    <Select name="billingDay" defaultValue={String(client.customerProfile?.billingDay || "1")}>
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                                                <SelectItem key={day} value={String(day)}>
-                                                    Dia {day}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <p className="text-[10px] text-muted-foreground">
-                                        Para clientes recorrentes, todas as faturas em aberto serão cobradas neste dia.
-                                    </p>
+                        {/* Imóvel e Notas */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <section className="space-y-3">
+                                <h3 className="text-xs font-semibold uppercase text-muted-foreground border-b pb-1">Imóvel</h3>
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="bedrooms" className="text-xs">Quartos</Label>
+                                        <Input id="bedrooms" name="bedrooms" type="number" className="h-8 text-xs" defaultValue={client.customerProfile?.bedrooms} />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="bathrooms" className="text-xs">Banh.</Label>
+                                        <Input id="bathrooms" name="bathrooms" type="number" className="h-8 text-xs" defaultValue={client.customerProfile?.bathrooms} />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="footage" className="text-xs">Metragem</Label>
+                                        <Input id="footage" name="footage" className="h-8 text-xs" defaultValue={client.customerProfile?.footage} placeholder="Ex: 120m²" />
+                                    </div>
                                 </div>
-                            )}
-                        </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="accessInfo" className="text-xs">Acesso / Chaves</Label>
+                                    <Input
+                                        id="accessInfo"
+                                        name="accessInfo"
+                                        className="h-8 text-xs"
+                                        defaultValue={client.customerProfile?.accessInfo}
+                                        placeholder="Códigos, local das chaves, etc."
+                                    />
+                                </div>
+                            </section>
 
-                        {/* Endereço */}
-                        <div className="space-y-4">
-                            <h3 className="text-sm font-medium text-muted-foreground border-b pb-1">Endereço</h3>
-                            <div className="space-y-2">
-                                <Label htmlFor="address">Endereço Completo</Label>
-                                <Input id="address" name="address" defaultValue={client.customerProfile?.address} />
-                            </div>
-                        </div>
-
-                        {/* Detalhes do Imóvel */}
-                        <div className="space-y-4">
-                            <h3 className="text-sm font-medium text-muted-foreground border-b pb-1">Detalhes do Imóvel</h3>
-                            <div className="grid grid-cols-3 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="bedrooms">Quartos</Label>
-                                    <Input id="bedrooms" name="bedrooms" type="number" defaultValue={client.customerProfile?.bedrooms} />
+                            <section className="space-y-3 flex flex-col">
+                                <h3 className="text-xs font-semibold uppercase text-muted-foreground border-b pb-1">Notas Internas</h3>
+                                <div className="space-y-1.5 flex-1">
+                                    <Textarea
+                                        id="notes"
+                                        name="notes"
+                                        className="min-h-[100px] text-xs resize-none"
+                                        defaultValue={client.customerProfile?.notes}
+                                        placeholder="Observações importantes..."
+                                    />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="bathrooms">Banheiros</Label>
-                                    <Input id="bathrooms" name="bathrooms" type="number" defaultValue={client.customerProfile?.bathrooms} />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="footage">Metragem</Label>
-                                    <Input id="footage" name="footage" defaultValue={client.customerProfile?.footage} placeholder="Ex: 120m²" />
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="accessInfo">Informações de Acesso</Label>
-                                <Textarea
-                                    id="accessInfo"
-                                    name="accessInfo"
-                                    defaultValue={client.customerProfile?.accessInfo}
-                                    placeholder="Códigos de portaria, local das chaves, etc."
-                                />
-                            </div>
-                        </div>
-
-                        {/* Anotações */}
-                        <div className="space-y-4">
-                            <h3 className="text-sm font-medium text-muted-foreground border-b pb-1">Anotações Internas</h3>
-                            <div className="space-y-2">
-                                <Textarea
-                                    id="notes"
-                                    name="notes"
-                                    defaultValue={client.customerProfile?.notes}
-                                    placeholder="Observações sobre o cliente..."
-                                />
-                            </div>
+                            </section>
                         </div>
                     </div>
-                    <DialogFooter>
-                        <Button type="submit" disabled={isLoading}>
+
+                    <DialogFooter className="sticky bottom-0 bg-background pt-4 border-t">
+                        <Button type="submit" disabled={isLoading} className="w-full md:w-auto">
                             {isLoading ? "Salvando..." : "Salvar Alterações"}
                         </Button>
                     </DialogFooter>

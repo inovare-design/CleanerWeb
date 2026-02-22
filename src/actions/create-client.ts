@@ -11,6 +11,9 @@ const CreateClientSchema = z.object({
     email: z.string().email("Email inválido"),
     phone: z.string().optional(),
     address: z.string().optional(),
+    city: z.string().optional(),
+    zipCode: z.string().optional(),
+    area: z.string().optional(),
     document: z.string().optional(),
     birthDate: z.string().optional(), // Recebe como string do form
     notes: z.string().optional(),
@@ -27,6 +30,9 @@ export async function createClient(formData: FormData) {
         email: formData.get("email"),
         phone: formData.get("phone") || undefined,
         address: formData.get("address") || undefined,
+        city: formData.get("city") || undefined,
+        zipCode: formData.get("zipCode") || undefined,
+        area: formData.get("area") || undefined,
         document: formData.get("document") || undefined,
         birthDate: formData.get("birthDate") || undefined,
         notes: formData.get("notes") || undefined,
@@ -40,7 +46,7 @@ export async function createClient(formData: FormData) {
         return { error: "Campos inválidos. Verifique os dados." };
     }
 
-    const { name, email, phone, address, document, birthDate, notes, bedrooms, bathrooms, footage, accessInfo } = validatedFields.data;
+    const { name, email, phone, address, city, zipCode, area, document, birthDate, notes, bedrooms, bathrooms, footage, accessInfo } = validatedFields.data;
 
     try {
         // Verificar se email já existe
@@ -75,6 +81,9 @@ export async function createClient(formData: FormData) {
                             create: {
                                 phone,
                                 address,
+                                city,
+                                zipCode,
+                                area,
                                 document,
                                 birthDate: birthDate ? new Date(birthDate) : null,
                                 notes,

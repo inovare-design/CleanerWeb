@@ -10,6 +10,9 @@ const UpdateClientSchema = z.object({
     email: z.string().email("Email inválido"),
     phone: z.string().optional(),
     address: z.string().optional(),
+    city: z.string().optional(),
+    zipCode: z.string().optional(),
+    area: z.string().optional(),
     document: z.string().optional(),
     birthDate: z.string().optional(),
     notes: z.string().optional(),
@@ -30,6 +33,9 @@ export async function updateClient(formData: FormData) {
         email: formData.get("email"),
         phone: formData.get("phone") || undefined,
         address: formData.get("address") || undefined,
+        city: formData.get("city") || undefined,
+        zipCode: formData.get("zipCode") || undefined,
+        area: formData.get("area") || undefined,
         document: formData.get("document") || undefined,
         birthDate: formData.get("birthDate") || undefined,
         notes: formData.get("notes") || undefined,
@@ -46,7 +52,7 @@ export async function updateClient(formData: FormData) {
         return { error: "Campos inválidos. Verifique os dados." };
     }
 
-    const { id, name, email, phone, address, document, birthDate, notes, bedrooms, bathrooms, footage, accessInfo, type, frequency, frequencyDetails, billingDay } = validatedFields.data;
+    const { id, name, email, phone, address, city, zipCode, area, document, birthDate, notes, bedrooms, bathrooms, footage, accessInfo, type, frequency, frequencyDetails, billingDay } = validatedFields.data;
 
     try {
         await db.$transaction(async (tx: any) => {
@@ -68,6 +74,9 @@ export async function updateClient(formData: FormData) {
                     tenantId: (await tx.tenant.findFirst()).id, // Fallback p/ MVP
                     phone,
                     address,
+                    city,
+                    zipCode,
+                    area,
                     document,
                     birthDate: birthDate ? new Date(birthDate) : null,
                     notes,
@@ -83,6 +92,9 @@ export async function updateClient(formData: FormData) {
                 update: {
                     phone,
                     address,
+                    city,
+                    zipCode,
+                    area,
                     document,
                     birthDate: birthDate ? new Date(birthDate) : null,
                     notes,

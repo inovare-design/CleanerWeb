@@ -75,6 +75,8 @@ model Customer {
   id               String           @id @default(uuid())
   userId           String           @unique
   address          String?
+  city             String?
+  zipCode          String?
   phone            String?
   latitude         Float?
   longitude        Float?

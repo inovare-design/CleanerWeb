@@ -48,7 +48,7 @@ export function CreateClientModal() {
                     <Plus className="mr-2 h-4 w-4" /> Novo Cliente
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[600px]">
                 <form onSubmit={handleSubmit}>
                     <DialogHeader>
                         <DialogTitle>Novo Cliente</DialogTitle>
@@ -62,56 +62,47 @@ export function CreateClientModal() {
                                 {error}
                             </div>
                         )}
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="name" className="text-right">
-                                Nome
-                            </Label>
-                            <Input
-                                id="name"
-                                name="name"
-                                placeholder="João Silva"
-                                className="col-span-3"
-                                required
-                            />
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="name">Nome Completo</Label>
+                                <Input id="name" name="name" placeholder="João Silva" required />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="email">Email</Label>
+                                <Input id="email" name="email" type="email" placeholder="joao@exemplo.com" required />
+                            </div>
                         </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="email" className="text-right">
-                                Email
-                            </Label>
-                            <Input
-                                id="email"
-                                name="email"
-                                type="email"
-                                placeholder="joao@exemplo.com"
-                                className="col-span-3"
-                                required
-                            />
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="phone">Telefone</Label>
+                                <Input id="phone" name="phone" placeholder="(11) 99999-9999" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="zipCode">Postcode / CEP</Label>
+                                <Input id="zipCode" name="zipCode" placeholder="Postcode" />
+                            </div>
                         </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="phone" className="text-right">
-                                Telefone
-                            </Label>
-                            <Input
-                                id="phone"
-                                name="phone"
-                                placeholder="(11) 99999-9999"
-                                className="col-span-3"
-                            />
+
+                        <div className="space-y-2">
+                            <Label htmlFor="address">Endereço Completo</Label>
+                            <Input id="address" name="address" placeholder="Rua Exemplo, 123" />
                         </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="address" className="text-right">
-                                Endereço
-                            </Label>
-                            <Input
-                                id="address"
-                                name="address"
-                                placeholder="Rua Exemplo, 123"
-                                className="col-span-3"
-                            />
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="city">Cidade</Label>
+                                <Input id="city" name="city" placeholder="City" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="area">Região (Area)</Label>
+                                <Input id="area" name="area" placeholder="Region/Area" />
+                            </div>
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button type="submit" disabled={isLoading}>
+                        <Button type="submit" disabled={isLoading} className="w-full">
                             {isLoading ? "Salvando..." : "Salvar Cliente"}
                         </Button>
                     </DialogFooter>
