@@ -72,6 +72,7 @@ export function AppointmentsTable({
 }: AppointmentsTableProps) {
     const [query, setQuery] = useState("");
     const [filterType, setFilterType] = useState<string>("all");
+    const [filterStatus, setFilterStatus] = useState<string>("all");
     const [filterToday, setFilterToday] = useState(false);
     const [sortKey, setSortKey] = useState<string>("date");
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
@@ -108,6 +109,15 @@ export function AppointmentsTable({
             result = result.filter(apt => {
                 const aptDate = new Date(apt.startTime).toISOString().split('T')[0];
                 return aptDate === todayStr;
+            });
+        }
+
+        // 1.3 Filter by Status (Visual/Logical)
+        if (filterStatus !== "all") {
+            result = result.filter(apt => {
+                if (filterStatus === "completed") return apt.status === "COMPLETED";
+                if (filterStatus === "active") return apt.status !== "COMPLETED" && apt.status !== "CANCELLED";
+                return true;
             });
         }
 
@@ -172,14 +182,50 @@ export function AppointmentsTable({
                     </CardDescription>
                 </div>
                 <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
-                    <div className="w-full md:w-[180px]">
+                    <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg gap-1 border border-zinc-200 dark:border-zinc-700">
+                        <Button
+                            variant={filterStatus === "all" ? "default" : "ghost"}
+                            size="sm"
+                            onClick={() => setFilterStatus("all")}
+                            className={cn(
+                                "h-7 text-xs px-3 font-bold",
+                                filterStatus === "all" ? "bg-white text-blue-600 shadow-sm hover:bg-white" : "text-zinc-500"
+                            )}
+                        >
+                            Todos
+                        </Button>
+                        <Button
+                            variant={filterStatus === "completed" ? "default" : "ghost"}
+                            size="sm"
+                            onClick={() => setFilterStatus("completed")}
+                            className={cn(
+                                "h-7 text-xs px-3 font-bold",
+                                filterStatus === "completed" ? "bg-white text-green-600 shadow-sm hover:bg-white" : "text-zinc-500"
+                            )}
+                        >
+                            Concluídos
+                        </Button>
+                        <Button
+                            variant={filterStatus === "active" ? "default" : "ghost"}
+                            size="sm"
+                            onClick={() => setFilterStatus("active")}
+                            className={cn(
+                                "h-7 text-xs px-3 font-bold",
+                                filterStatus === "active" ? "bg-white text-blue-600 shadow-sm hover:bg-white" : "text-zinc-500"
+                            )}
+                        >
+                            Em Andamento
+                        </Button>
+                    </div>
+
+                    <div className="w-full md:w-[150px]">
                         <Select value={filterType} onValueChange={setFilterType}>
                             <SelectTrigger className="h-9">
                                 <span className="text-xs font-medium">Tipo: </span>
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">Todos</SelectItem>
+                                <SelectItem value="all">Tipos</SelectItem>
                                 <SelectItem value="recurring">Recorrentes</SelectItem>
                                 <SelectItem value="one-time">Avulsos</SelectItem>
                             </SelectContent>
@@ -210,18 +256,19 @@ export function AppointmentsTable({
                             <CalendarIcon className="w-4 h-4 mr-2" />
                             Hoje
                         </Button>
-                        {(query || filterToday || filterType !== 'all' || sortKey !== 'date' || sortOrder !== 'desc') && (
+                        {(query || filterToday || filterType !== 'all' || filterStatus !== 'all' || sortKey !== 'date' || sortOrder !== 'desc') && (
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => {
                                     setQuery("");
                                     setFilterType("all");
+                                    setFilterStatus("all");
                                     setFilterToday(false);
                                     setSortKey("date");
                                     setSortOrder("desc");
                                 }}
-                                className="text-xs h-9"
+                                className="text-xs h-9 text-red-500 hover:text-red-600 hover:bg-red-50"
                             >
                                 Limpar
                             </Button>
@@ -279,81 +326,98 @@ export function AppointmentsTable({
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {filteredAndSortedAppointments.map((apt) => (
-                            <TableRow key={apt.id}>
-                                <TableCell>
-                                    <div className="flex flex-col text-sm">
-                                        <span className="font-medium flex items-center">
-                                            <CalendarIcon className="w-3 h-3 mr-1 text-muted-foreground" />
-                                            {new Date(apt.startTime).toLocaleDateString()}
-                                        </span>
-                                        <span className="text-xs text-muted-foreground ml-4">
-                                            {new Date(apt.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </span>
-                                    </div>
-                                </TableCell>
-                                <TableCell>
-                                    <div className="flex flex-col">
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-medium">{apt.customer.user.name ?? "Cliente Desconhecido"}</span>
+                        {filteredAndSortedAppointments.map((apt) => {
+                            const isLate = new Date(apt.startTime) < new Date() && apt.status !== "COMPLETED" && apt.status !== "CANCELLED";
+
+                            return (
+                                <TableRow key={apt.id} className={cn(isLate && "bg-red-50/10 hover:bg-red-50/20 transition-colors")}>
+                                    <TableCell>
+                                        <div className="flex flex-col text-sm">
+                                            <span className={cn(
+                                                "font-medium flex items-center",
+                                                isLate ? "text-red-600" : "text-zinc-900"
+                                            )}>
+                                                <CalendarIcon className={cn("w-3 h-3 mr-1", isLate ? "text-red-400" : "text-muted-foreground")} />
+                                                {new Date(apt.startTime).toLocaleDateString()}
+                                            </span>
+                                            <span className="text-xs text-muted-foreground ml-4">
+                                                {new Date(apt.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
                                         </div>
-                                        <span className="text-xs text-muted-foreground flex items-center mt-0.5 truncate max-w-[150px]" title={apt.address}>
-                                            <MapPin className="w-3 h-3 mr-1" /> {apt.address}
-                                        </span>
-                                    </div>
-                                </TableCell>
-                                <TableCell>
-                                    <span className="text-sm">
-                                        {apt.service.name}
-                                    </span>
-                                </TableCell>
-                                <TableCell>
-                                    {apt.employee ? (
-                                        <div className="flex items-center">
-                                            <div
-                                                className="h-2 w-2 rounded-full mr-2"
-                                                style={{ backgroundColor: apt.employee.color || '#000' }}
-                                            />
-                                            <span className="text-sm">{apt.employee.user.name}</span>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-col">
+                                            <div className="flex items-center gap-2">
+                                                <span className={cn(
+                                                    "font-bold",
+                                                    isLate ? "text-red-600 underline decoration-red-200 underline-offset-4" : "text-zinc-900"
+                                                )}>
+                                                    {apt.customer.user.name ?? "Cliente Desconhecido"}
+                                                </span>
+                                                {isLate && (
+                                                    <Badge variant="outline" className="h-4 text-[8px] bg-red-100 text-red-600 border-red-200 uppercase font-black px-1 leading-none py-0">
+                                                        Atrasado
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                            <span className="text-xs text-muted-foreground flex items-center mt-0.5 truncate max-w-[150px]" title={apt.address}>
+                                                <MapPin className="w-3 h-3 mr-1" /> {apt.address}
+                                            </span>
                                         </div>
-                                    ) : (
-                                        <span className="text-xs text-muted-foreground italic">Não atribuído</span>
-                                    )}
-                                </TableCell>
-                                <TableCell>
-                                    {getStatusBadge(apt.status)}
-                                </TableCell>
-                                <TableCell>
-                                    <div className="flex items-center gap-1.5 text-zinc-600 font-medium">
-                                        <Clock className="w-3.5 h-3.5" />
+                                    </TableCell>
+                                    <TableCell>
                                         <span className="text-sm">
-                                            {apt.customDuration || apt.service.durationMin || 0} min
+                                            {apt.service.name}
                                         </span>
-                                    </div>
-                                </TableCell>
-                                <TableCell>
-                                    <Badge
-                                        variant="outline"
-                                        className={cn(
-                                            "h-5 text-[10px] px-2 font-black uppercase tracking-tighter",
-                                            apt.customer.frequency !== 'ONE_TIME'
-                                                ? "bg-blue-50 text-blue-600 border-blue-100"
-                                                : "bg-zinc-100 text-zinc-600 border-zinc-200"
+                                    </TableCell>
+                                    <TableCell>
+                                        {apt.employee ? (
+                                            <div className="flex items-center">
+                                                <div
+                                                    className="h-2 w-2 rounded-full mr-2"
+                                                    style={{ backgroundColor: apt.employee.color || '#000' }}
+                                                />
+                                                <span className="text-sm">{apt.employee.user.name}</span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-xs text-muted-foreground italic">Não atribuído</span>
                                         )}
-                                    >
-                                        {apt.customer.frequency === 'ONE_TIME' ? 'Avulso' : 'Recorrente'}
-                                    </Badge>
-                                </TableCell>
-                                <TableCell>
-                                    <AppointmentActions
-                                        appointment={apt}
-                                        clients={clients}
-                                        services={services}
-                                        employees={employees}
-                                    />
-                                </TableCell>
-                            </TableRow>
-                        ))}
+                                    </TableCell>
+                                    <TableCell>
+                                        {getStatusBadge(apt.status)}
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex items-center gap-1.5 text-zinc-600 font-medium">
+                                            <Clock className="w-3.5 h-3.5" />
+                                            <span className="text-sm">
+                                                {apt.customDuration || apt.service.durationMin || 0} min
+                                            </span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge
+                                            variant="outline"
+                                            className={cn(
+                                                "h-5 text-[10px] px-2 font-black uppercase tracking-tighter",
+                                                apt.customer.frequency !== 'ONE_TIME'
+                                                    ? "bg-blue-50 text-blue-600 border-blue-100"
+                                                    : "bg-zinc-100 text-zinc-600 border-zinc-200"
+                                            )}
+                                        >
+                                            {apt.customer.frequency === 'ONE_TIME' ? 'Avulso' : 'Recorrente'}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        <AppointmentActions
+                                            appointment={apt}
+                                            clients={clients}
+                                            services={services}
+                                            employees={employees}
+                                        />
+                                    </TableCell>
+                                </TableRow>
+                            );
+                        })}
                         {filteredAndSortedAppointments.length === 0 && (
                             <TableRow>
                                 <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
