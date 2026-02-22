@@ -159,12 +159,12 @@ export default function BookWizard({
                             <h2 className="text-xl font-semibold text-center">Quando e onde?</h2>
 
                             <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">
-                                <div className="w-full flex justify-center">
+                                <div className="w-full bg-white rounded-xl border-0 md:border shadow-none md:shadow-sm p-1 md:p-4">
                                     <Calendar
                                         mode="single"
                                         selected={date}
                                         onSelect={setDate}
-                                        className="rounded-md border bg-white shadow-sm"
+                                        className="w-full"
                                         locale={ptBR}
                                         disabled={(day) => day < new Date(new Date().setHours(0, 0, 0, 0))}
                                     />
