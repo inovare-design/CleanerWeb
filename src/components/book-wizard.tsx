@@ -159,14 +159,16 @@ export default function BookWizard({
                             <h2 className="text-xl font-semibold text-center">Quando e onde?</h2>
 
                             <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">
-                                <Calendar
-                                    mode="single"
-                                    selected={date}
-                                    onSelect={setDate}
-                                    className="rounded-md border mx-auto bg-white shadow-sm"
-                                    locale={ptBR}
-                                    disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                                />
+                                <div className="w-full flex justify-center">
+                                    <Calendar
+                                        mode="single"
+                                        selected={date}
+                                        onSelect={setDate}
+                                        className="rounded-md border bg-white shadow-sm"
+                                        locale={ptBR}
+                                        disabled={(day) => day < new Date(new Date().setHours(0, 0, 0, 0))}
+                                    />
+                                </div>
                                 <div className="flex-1 w-full space-y-6">
                                     <div className="space-y-2">
                                         <Label htmlFor="region">Sua Região / Bairro</Label>
@@ -175,12 +177,9 @@ export default function BookWizard({
                                                 <SelectValue placeholder="Selecione sua região" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {allRegions.map(r => (
+                                                {['NORTH', 'SOUTH', 'EAST', 'WEST'].map(r => (
                                                     <SelectItem key={r} value={r}>{r}</SelectItem>
                                                 ))}
-                                                {allRegions.length === 0 && (
-                                                    <div className="p-2 text-xs text-muted-foreground text-center">Nenhuma região cadastrada</div>
-                                                )}
                                             </SelectContent>
                                         </Select>
                                         <p className="text-[10px] text-muted-foreground">Mostraremos apenas os profissionais que atendem sua área.</p>
