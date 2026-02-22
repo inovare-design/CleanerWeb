@@ -5,9 +5,17 @@ import { revalidatePath } from "next/cache";
 import { AppointmentStatus } from "@prisma/client";
 import { sendAppointmentNotification } from "@/lib/notifications";
 
-export async function updateAppointmentStatus(appointmentId: string, status: AppointmentStatus) {
+export async function updateAppointmentStatus(
+    appointmentId: string,
+    status: AppointmentStatus,
+    employeeId?: string | null
+) {
     try {
         const updateData: any = { status };
+
+        if (employeeId !== undefined) {
+            updateData.employeeId = employeeId;
+        }
 
         // Se estiver indo para aguardando confirmação, registra o horário da cleaner
         if ((status as string) === "AWAITING_CONFIRMATION") {

@@ -21,6 +21,7 @@ import { processConfirmedAppointment } from "@/actions/process-confirmed-appoint
 import { toast } from "sonner";
 import Link from "next/link";
 import { Receipt, ExternalLink } from "lucide-react";
+import { ConfirmAppointmentModal } from "@/components/modals/confirm-appointment-modal";
 
 interface AppointmentActionsProps {
     appointment: any; // Using any for simplicity here to avoid deep type imports, or better, define shape
@@ -34,6 +35,7 @@ export function AppointmentActions({ appointment, clients, services, employees }
     const [isLoading, setIsLoading] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
     const [finishOpen, setFinishOpen] = useState(false);
+    const [confirmOpen, setConfirmOpen] = useState(false);
     const router = useRouter();
 
     const handleStatusChange = async (newStatus: AppointmentStatus) => {
@@ -88,6 +90,13 @@ export function AppointmentActions({ appointment, clients, services, employees }
                 appointmentId={appointment.id}
             />
 
+            <ConfirmAppointmentModal
+                open={confirmOpen}
+                onOpenChange={setConfirmOpen}
+                appointment={appointment}
+                employees={employees}
+            />
+
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="h-8 w-8 p-0" disabled={isLoading}>
@@ -105,7 +114,7 @@ export function AppointmentActions({ appointment, clients, services, employees }
                     <DropdownMenuSeparator />
 
                     {appointment.status === 'PENDING' && (
-                        <DropdownMenuItem onClick={() => handleStatusChange('CONFIRMED')}>
+                        <DropdownMenuItem onClick={() => setConfirmOpen(true)}>
                             <PlayCircle className="mr-2 h-4 w-4 text-blue-600" /> Confirmar
                         </DropdownMenuItem>
                     )}
