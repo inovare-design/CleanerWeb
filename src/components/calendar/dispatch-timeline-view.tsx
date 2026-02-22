@@ -15,8 +15,8 @@ interface DispatchTimelineViewProps {
     dragShadow?: any;
 }
 
-const HOURS = Array.from({ length: 15 }, (_, i) => i + 8); // 08:00 to 22:00
-const PIXELS_PER_MINUTE = 2; // 120px per hour
+const HOURS = Array.from({ length: 12 }, (_, i) => i + 8); // 08:00 to 20:00
+const PIXELS_PER_MINUTE = 1.5; // 90px per hour
 const COLUMN_WIDTH = 60 * PIXELS_PER_MINUTE;
 
 function TimelineRow({ employee, appointments, date, onEdit, dragShadow }: any) {
@@ -123,7 +123,7 @@ function TimelineRow({ employee, appointments, date, onEdit, dragShadow }: any) 
                         className="absolute top-4 bottom-4 border-2 border-dashed border-blue-500 bg-blue-500/10 rounded-xl z-50 pointer-events-none animate-pulse"
                         style={{
                             left: `${differenceInMinutes(dragShadow.startTime, addMinutes(startOfDay(date), 8 * 60)) * PIXELS_PER_MINUTE}px`,
-                            width: `${appointments.find(a => a.id === dragShadow.appointmentId)?.customDuration || 60}px` // Default 60 if not found
+                            width: `${appointments.find((a: any) => a.id === dragShadow.appointmentId)?.customDuration || 60}px` // Default 60 if not found
                         }}
                     />
                 )}
