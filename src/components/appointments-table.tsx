@@ -156,7 +156,7 @@ export function AppointmentsTable({
         });
 
         return result;
-    }, [initialAppointments, query, filterType, filterToday, sortKey, sortOrder]);
+    }, [initialAppointments, query, filterType, filterStatus, filterToday, sortKey, sortOrder]);
 
     const handleSort = (key: string) => {
         if (sortKey === key) {
