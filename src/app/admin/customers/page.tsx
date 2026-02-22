@@ -60,6 +60,8 @@ type ClientWithProfile = {
         phone: string | null;
         address: string | null;
         frequency: string;
+        latitude: number | null;
+        longitude: number | null;
     } | null;
 };
 
@@ -175,6 +177,12 @@ export default async function CustomersPage(props: {
                                                 <DropdownMenuItem onClick={() => window.location.href = `/admin/customers/${client.id}`}>
                                                     <ExternalLink className="mr-2 h-4 w-4" /> Ver Detalhes
                                                 </DropdownMenuItem>
+
+                                                {client.customerProfile?.latitude && (
+                                                    <DropdownMenuItem onClick={() => window.location.href = `/admin/map?lat=${client.customerProfile?.latitude}&lng=${client.customerProfile?.longitude}&zoom=18&cid=${client.id}`}>
+                                                        <MapPin className="mr-2 h-4 w-4 text-blue-600" /> Ver no Mapa
+                                                    </DropdownMenuItem>
+                                                )}
 
                                                 <EditClientModal
                                                     client={client}

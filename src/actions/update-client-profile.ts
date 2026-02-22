@@ -3,6 +3,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { geocodeAddress } from "@/lib/geocoding";
 
 export async function updateClientProfile(formData: FormData) {
     const session = await auth();
@@ -39,6 +40,18 @@ export async function updateClientProfile(formData: FormData) {
             data: { name }
         });
 
+        // Geocoding if address changed or coordinates are missing
+        let latitude = user.customerProfile.latitude;
+        let longitude = user.customerProfile.longitude;
+
+        if (address !== user.customerProfile.address || !latitude || !longitude) {
+            const coords = await geocodeAddress(address);
+            if (coords) {
+                latitude = coords.lat;
+                longitude = coords.lng;
+            }
+        }
+
         // Update customer profile fields
         await db.customer.update({
             where: { id: user.customerProfile.id },
@@ -46,6 +59,8 @@ export async function updateClientProfile(formData: FormData) {
                 phone,
                 address,
                 area,
+                latitude,
+                longitude,
                 bedrooms: bedrooms ? parseInt(bedrooms) : null,
                 bathrooms: bathrooms ? parseInt(bathrooms) : null,
                 footage,

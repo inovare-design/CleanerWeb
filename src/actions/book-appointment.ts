@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { geocodeAddress } from "@/lib/geocoding";
 import { z } from "zod";
 
 const BookSchema = z.object({
@@ -109,11 +110,24 @@ export async function bookAppointment(formData: FormData) {
         });
 
         // 5. Atualizar Perfil do Cliente com a região e endereço se houver algo novo
+        let lat = user.customerProfile.latitude;
+        let lng = user.customerProfile.longitude;
+
+        if (address !== user.customerProfile.address || !lat || !lng) {
+            const coords = await geocodeAddress(address);
+            if (coords) {
+                lat = coords.lat;
+                lng = coords.lng;
+            }
+        }
+
         await db.customer.update({
             where: { id: user.customerProfile.id },
             data: {
                 area: region || undefined,
                 address: address || undefined,
+                latitude: lat,
+                longitude: lng,
             }
         });
 

@@ -59,6 +59,13 @@ const routes = [
         permission: "customers:manage"
     },
     {
+        label: "Mapa de Clientes",
+        icon: Truck,
+        href: "/admin/map",
+        color: "text-yellow-400",
+        permission: "routes:view"
+    },
+    {
         label: "Equipe / Frota",
         icon: UserSquare2,
         href: "/admin/employees",
