@@ -31,7 +31,7 @@ export async function createEmployee(formData: FormData) {
         password: formData.get("password"),
         phone: formData.get("phone"),
         color: formData.get("color"),
-        servedAreas: formData.get("servedAreas"),
+        servedAreas: formData.getAll("servedAreas").join(", "),
     });
 
     if (!validatedFields.success) {

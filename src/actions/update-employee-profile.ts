@@ -23,7 +23,7 @@ export async function updateEmployeeProfile(formData: FormData) {
         userId: formData.get("userId"),
         phone: formData.get("phone"),
         color: formData.get("color"),
-        servedAreas: formData.get("servedAreas"),
+        servedAreas: formData.getAll("servedAreas").join(", "),
     });
 
     if (!validatedFields.success) {

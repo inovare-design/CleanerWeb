@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
 import { createEmployee } from "@/actions/create-employee";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Checkbox } from "../ui/checkbox";
 
 interface CreateEmployeeModalProps {
     profiles: any[];
@@ -131,14 +132,28 @@ export function CreateEmployeeModal({ profiles }: CreateEmployeeModalProps) {
                                 <span className="text-xs text-muted-foreground">Cor na agenda/mapa.</span>
                             </div>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="servedAreas">Regiões de Atendimento</Label>
-                            <Input
-                                id="servedAreas"
-                                name="servedAreas"
-                                placeholder="Centro, Jardins, Setor Bueno..."
-                            />
-                            <p className="text-[10px] text-muted-foreground italic">Separe por vírgulas (Ex: Centro, Bueno, Oeste)</p>
+                        <div className="space-y-3">
+                            <Label>Regiões de Atendimento</Label>
+                            <div className="grid grid-cols-2 gap-3 p-4 border rounded-lg bg-muted/20">
+                                {['NORTH', 'SOUTH', 'EAST', 'WEST'].map((r) => (
+                                    <div key={r} className="flex items-center space-x-2">
+                                        <input
+                                            type="checkbox"
+                                            id={`new-region-${r}`}
+                                            name="servedAreas"
+                                            value={r}
+                                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
+                                        />
+                                        <label
+                                            htmlFor={`new-region-${r}`}
+                                            className="text-sm font-medium leading-none"
+                                        >
+                                            {r}
+                                        </label>
+                                    </div>
+                                ))}
+                            </div>
+                            <p className="text-[10px] text-muted-foreground italic">Selecione as regiões onde este profissional atua.</p>
                         </div>
                     </div>
                     <DialogFooter>
