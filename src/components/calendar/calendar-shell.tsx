@@ -28,14 +28,16 @@ import { DndContext, DragEndEvent, DragOverlay, MouseSensor, TouchSensor, useSen
 import { MonthView } from "@/components/calendar/month-view";
 import { WeekView } from "@/components/calendar/week-view";
 import { DayResourceView } from "@/components/calendar/day-resource-view";
+import { DispatchTimelineView } from "@/components/calendar/dispatch-timeline-view";
+import { DispatchSidebar } from "@/components/calendar/dispatch-sidebar";
 import { updateAppointmentResource, updateAppointmentTime } from "@/actions/update-appointment-time";
 import { EditAppointmentModal } from "@/components/modals/edit-appointment-modal";
 
-type ViewType = "month" | "week" | "day";
+type ViewType = "month" | "week" | "day" | "dispatch";
 
 export function CalendarShell({ appointments, employees, clients, services }: { appointments: any[], employees: any[], clients: any[], services: any[] }) {
     const [date, setDate] = useState(new Date());
-    const [view, setView] = useState<ViewType>("day");
+    const [view, setView] = useState<ViewType>("dispatch");
     const [activeAppointment, setActiveAppointment] = useState<any>(null);
     const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("all");
     const [filterType, setFilterType] = useState<string>("all");
@@ -81,13 +83,13 @@ export function CalendarShell({ appointments, employees, clients, services }: { 
     const handlePrev = () => {
         if (view === "month") setDate(subMonths(date, 1));
         if (view === "week") setDate(subWeeks(date, 1));
-        if (view === "day") setDate(subDays(date, 1));
+        if (view === "day" || view === "dispatch") setDate(subDays(date, 1));
     };
 
     const handleNext = () => {
         if (view === "month") setDate(addMonths(date, 1));
         if (view === "week") setDate(addWeeks(date, 1));
-        if (view === "day") setDate(addDays(date, 1));
+        if (view === "day" || view === "dispatch") setDate(addDays(date, 1));
     };
 
     const handleToday = () => setDate(new Date());
@@ -113,14 +115,14 @@ export function CalendarShell({ appointments, employees, clients, services }: { 
         const appointment = active.data.current?.appointment;
         if (!appointment) return;
 
-        const PIXELS_PER_HOUR = 96; // Increased from 56 for better 10-min resolution (16px per 10 min)
+        const PIXELS_PER_HOUR = view === "dispatch" ? 120 : 96;
         const minutesMoved = Math.round((delta.y / PIXELS_PER_HOUR) * 60);
         const snappedMinutes = Math.round(minutesMoved / 10) * 10; // 10-min snap
 
         const currentStart = new Date(appointment.startTime);
         const newStartTime = addMinutes(currentStart, snappedMinutes);
 
-        if (view === "day") {
+        if (view === "day" || view === "dispatch") {
             setDragShadow({
                 appointmentId: appointment.id,
                 startTime: newStartTime,
@@ -162,7 +164,7 @@ export function CalendarShell({ appointments, employees, clients, services }: { 
         // In "day" view, id is employeeId (or "unassigned")
         // In "week" view, id is yyyy-MM-dd date string
 
-        if (view === "day") {
+        if (view === "day" || view === "dispatch") {
             const originalEmployeeId = appointment.employeeId || "unassigned";
             const newEmployeeId = String(over.id);
 
@@ -299,18 +301,18 @@ export function CalendarShell({ appointments, employees, clients, services }: { 
                         </div>
 
                         <div className="flex items-center border rounded-md p-0.5 bg-muted/50 shrink-0">
-                            {(['month', 'week', 'day'] as const).map((v) => (
+                            {(['dispatch', 'day', 'week', 'month'] as const).map((v) => (
                                 <Button
                                     key={v}
                                     variant={view === v ? "secondary" : "ghost"}
                                     size="sm"
                                     onClick={() => setView(v)}
                                     className={cn(
-                                        "h-7 px-3 text-[11px] font-medium transition-all capitalize",
-                                        view === v && "bg-white dark:bg-gray-800 shadow-sm"
+                                        "h-7 px-3 text-[11px] font-black transition-all capitalize",
+                                        view === v && "bg-white dark:bg-gray-800 shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-700"
                                     )}
                                 >
-                                    {v === 'month' ? 'Mês' : v === 'week' ? 'Semana' : 'Dia'}
+                                    {v === 'dispatch' ? 'Dispatch' : v === 'day' ? 'Dia' : v === 'week' ? 'Semana' : 'Mês'}
                                 </Button>
                             ))}
                         </div>
@@ -318,10 +320,17 @@ export function CalendarShell({ appointments, employees, clients, services }: { 
                 </div>
 
                 {/* Content Area */}
-                <div className="flex-1 overflow-auto bg-white dark:bg-gray-950 rounded-lg border shadow-sm items-start relative">
-                    {view === "month" && <MonthView date={date} appointments={filteredAppointments} onEdit={handleEdit} />}
-                    {view === "week" && <WeekView date={date} appointments={filteredAppointments} onEdit={handleEdit} dragShadow={dragShadow} />}
-                    {view === "day" && <DayResourceView date={date} appointments={filteredAppointments} employees={filteredEmployees} onEdit={handleEdit} dragShadow={dragShadow} />}
+                <div className="flex-1 flex overflow-hidden bg-white dark:bg-gray-950 rounded-2xl border shadow-xl shadow-zinc-200/20 dark:shadow-none items-start relative">
+                    <div className="flex-1 h-full overflow-hidden relative">
+                        {view === "month" && <MonthView date={date} appointments={filteredAppointments} onEdit={handleEdit} />}
+                        {view === "week" && <WeekView date={date} appointments={filteredAppointments} onEdit={handleEdit} dragShadow={dragShadow} />}
+                        {view === "day" && <DayResourceView date={date} appointments={filteredAppointments} employees={filteredEmployees} onEdit={handleEdit} dragShadow={dragShadow} />}
+                        {view === "dispatch" && <DispatchTimelineView date={date} appointments={filteredAppointments} employees={filteredEmployees} onEdit={handleEdit} dragShadow={dragShadow} />}
+                    </div>
+
+                    {(view === "dispatch" || view === "day") && (
+                        <DispatchSidebar appointments={filteredAppointments} employees={employees} />
+                    )}
                 </div>
 
                 {editingAppointment && (
